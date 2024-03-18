@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { useTransition } from "react";
 import Link from "next/link";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input, PasswordInput } from "@/components/ui/input";
+import { loginSchema } from "@/schemas/auth";
 import {
   Form,
   FormControl,
@@ -17,12 +18,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { loginSchema } from "@/schemas/auth";
+import { login } from "@/actions/login";
 
 type loginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isLoading, setTransition] = useTransition();
 
   const form = useForm<loginFormData>({
     resolver: zodResolver(loginSchema),
@@ -34,8 +35,11 @@ export default function LoginForm() {
   });
 
   function onSubmit(values: loginFormData) {
-    console.log(values);
-    alert(JSON.stringify(values, null, 2));
+    // console.log(values);
+    // alert(JSON.stringify(values, null, 2));
+    setTransition(() => {
+      login(values);
+    });
   }
 
   return (
