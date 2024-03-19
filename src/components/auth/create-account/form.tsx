@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import React, { useTransition } from "react";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,13 @@ import {
 } from "@/components/ui/form";
 
 import { createAccountSchema } from "@/schemas/auth";
+import { signup } from "@/actions/signup";
 
 type createAccountFormData = z.infer<typeof createAccountSchema>;
 
 export default function LoginForm() {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isLoading, setTransition] = useTransition();
+  // const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const form = useForm<createAccountFormData>({
     resolver: zodResolver(createAccountSchema),
@@ -36,8 +39,23 @@ export default function LoginForm() {
   });
 
   function onSubmit(values: createAccountFormData) {
-    console.log(values);
-    alert(JSON.stringify(values, null, 2));
+    // console.log(values);
+    // alert(JSON.stringify(values, null, 2));
+    setTransition(async () => {
+      const response = await signup(values);
+      if (response.error) {
+        toast.error(response.error);
+        // console.log(response.error);
+        form.reset();
+        return;
+      }
+      if (response.success) {
+        toast.success(response.success);
+        form.reset();
+        // console.log(response.success);
+        return;
+      }
+    });
   }
 
   return (

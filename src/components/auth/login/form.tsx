@@ -5,11 +5,13 @@ import Link from "next/link";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input, PasswordInput } from "@/components/ui/input";
 import { loginSchema } from "@/schemas/auth";
+import { login } from "@/actions/login";
 import {
   Form,
   FormControl,
@@ -18,7 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { login } from "@/actions/login";
 
 type loginFormData = z.infer<typeof loginSchema>;
 
@@ -35,10 +36,14 @@ export default function LoginForm() {
   });
 
   function onSubmit(values: loginFormData) {
-    // console.log(values);
-    // alert(JSON.stringify(values, null, 2));
-    setTransition(() => {
-      login(values);
+    setTransition(async () => {
+      const response = await login(values);
+      if (response?.error) {
+        toast.error(response.error);
+      }
+      // if (response?.success) {
+      //   toast.success(response.success);
+      // }
     });
   }
 

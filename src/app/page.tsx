@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -10,12 +11,35 @@ export default function Home() {
         <p className="text-xl text-center">
           A chatbot that can answer your questions about your documents
         </p>
-        <Button className="mt-8" variant="default">
-          Get started
-        </Button>
-        <Button className="mt-8" variant="outline">
-          Learn more
-        </Button>
+      </div>
+      <div className="flex flex-col space-y-10">
+        <p>Protected Routes</p>
+        <Link
+          href="/dashboard"
+          className={buttonVariants({
+            variant: "default",
+          })}
+        >
+          Dashboard
+        </Link>
+      </div>
+      <div className="flex gap-5">
+        <Link
+          className={buttonVariants({
+            variant: "outline",
+          })}
+          href="/login"
+        >
+          Login
+        </Link>
+        <Link
+          className={buttonVariants({
+            variant: "outline",
+          })}
+          href="/create-account"
+        >
+          Create Account
+        </Link>
       </div>
     </main>
   );
