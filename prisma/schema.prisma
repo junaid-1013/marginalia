@@ -1,24 +1,25 @@
 datasource db {
-  provider  = "postgresql"
-  url  	    = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 generator client {
   provider = "prisma-client-js"
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -26,11 +27,37 @@ model Account {
 }
 
 model User {
-  id                String @id @default(cuid())
-  name              String?
-  email             String @unique
-  emailVerified     Boolean @default(false)
-  image             String?
-  password          String?
-  accounts          Account[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  password      String?
+  accounts      Account[]
+  Chat          Chat[]
+}
+
+model Chat {
+  id        String     @id @default(cuid())
+  pdfName   String
+  pdfUrl    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  fileKey   String
+  messages  Messages[]
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Messages {
+  id     String @id @default(cuid())
+  createdAt DateTime @default(now())
+  chat   Chat   @relation(fields: [chatId], references: [id])
+  chatId String
+  role  Role  @default(USER)
+}
+
+enum Role {
+  USER
+  SYSTEM
 }
