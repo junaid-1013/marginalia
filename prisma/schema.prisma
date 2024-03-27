@@ -39,22 +39,21 @@ model User {
 
 model Chat {
   id        String     @id @default(cuid())
-  pdfName   String
+  name      String     @unique
   pdfUrl    String
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  fileKey   String
   messages  Messages[]
-  user      User       @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   userId    String
 }
 
 model Messages {
-  id     String @id @default(cuid())
+  id        String @id @default(cuid())
   createdAt DateTime @default(now())
-  chat   Chat   @relation(fields: [chatId], references: [id])
-  chatId String
-  role  Role  @default(USER)
+  chat      Chat   @relation(fields: [chatId], references: [id])
+  chatId    String
+  role      Role  @default(USER)
 }
 
 enum Role {

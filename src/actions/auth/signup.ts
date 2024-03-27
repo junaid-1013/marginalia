@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { createAccountSchema } from "@/schemas/auth";
-import { getUserByEmail } from "@/services/user";
+import { getUserByEmail } from "@/services/db/user";
 
 type TFormDataType = z.infer<typeof createAccountSchema>;
 

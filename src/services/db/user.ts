@@ -24,3 +24,9 @@ export const geetUserById = async (id: string) => {
     return null;
   }
 };
+
+interface IProps {
+  userId: string;
+  name: string;
+  pdfUrl: string;
+}

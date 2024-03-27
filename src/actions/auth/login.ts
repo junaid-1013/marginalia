@@ -1,10 +1,10 @@
 "use server";
 
 import * as z from "zod";
+import { AuthError } from "next-auth";
 
 import { loginSchema } from "@/schemas/auth";
-import { getUserByEmail } from "@/services/user";
-import { AuthError } from "next-auth";
+import { getUserByEmail } from "@/services/db/user";
 import { signIn } from "@/auth";
 import { DEFAULT_REDIRECT_URL } from "@/lib/routes";
 

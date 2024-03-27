@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useTransition } from "react";
 import * as z from "zod";
+import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -19,13 +19,12 @@ import {
 } from "@/components/ui/form";
 
 import { createAccountSchema } from "@/schemas/auth";
-import { signup } from "@/actions/signup";
+import { signup } from "@/actions/auth/signup";
 
 type createAccountFormData = z.infer<typeof createAccountSchema>;
 
 export default function LoginForm() {
   const [isLoading, setTransition] = useTransition();
-  // const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const form = useForm<createAccountFormData>({
     resolver: zodResolver(createAccountSchema),

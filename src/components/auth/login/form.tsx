@@ -11,7 +11,7 @@ import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input, PasswordInput } from "@/components/ui/input";
 import { loginSchema } from "@/schemas/auth";
-import { login } from "@/actions/login";
+import { login } from "@/actions/auth/login";
 import {
   Form,
   FormControl,

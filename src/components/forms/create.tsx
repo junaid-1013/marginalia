@@ -1,26 +1,28 @@
 "use client";
-import React, { useCallback } from "react";
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { FileWithPath, useDropzone } from "react-dropzone";
+import { FileIcon, UploadCloudIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { CreateFormSchema } from "@/schemas/form/create";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { FileIcon, UploadCloudIcon } from "lucide-react";
-import { FileWithPath, useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { uploadFile } from "@/services/upload-file";
 
 const CreateForm = () => {
+  const { data } = useSession();
   const router = useRouter();
   const form = useForm<z.infer<typeof CreateFormSchema>>({
     resolver: zodResolver(CreateFormSchema),
@@ -37,17 +39,27 @@ const CreateForm = () => {
     onDrop: (acceptedFiles: FileWithPath[]) => {
       // Update the type of acceptedFiles to be an array
       form.setValue("pdfFile", acceptedFiles);
-      console.log(typeof acceptedFiles);
     },
   });
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof CreateFormSchema>) {
+  async function onSubmit(values: z.infer<typeof CreateFormSchema>) {
     // Do something with the form values.
     // ✅ This will be type-safe and validated.
     // make the filename to the kebab case and remove the spaces
-    const title = values.title.replace(/\s+/g, "-").toLowerCase();
-    router.push(`dashboard/lecture/${title}`);
+    const pdfLink = await uploadFile(values.pdfFile[0]);
+
+    const chatConfig = {
+      name: values.title,
+      pdfUrl: pdfLink,
+      userId: data?.user?.id as string,
+    };
+    const chat = await fetch("/api/chat", {
+      method: "POST",
+      body: JSON.stringify(chatConfig),
+    });
+    // const title = values.title.replace(/\s+/g, "-").toLowerCase();
+    // router.push(`dashboard/lecture/${title}`);
     console.log(values);
   }
   return (
