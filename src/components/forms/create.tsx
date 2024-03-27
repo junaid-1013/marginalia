@@ -1,0 +1,116 @@
+"use client";
+import React, { useCallback } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { CreateFormSchema } from "@/schemas/form/create";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { FileIcon, UploadCloudIcon } from "lucide-react";
+import { FileWithPath, useDropzone } from "react-dropzone";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+
+const CreateForm = () => {
+  const router = useRouter();
+  const form = useForm<z.infer<typeof CreateFormSchema>>({
+    resolver: zodResolver(CreateFormSchema),
+    mode: "onBlur",
+    defaultValues: {
+      title: "",
+    },
+  });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      "application/pdf": [".pdf"],
+    },
+    multiple: false,
+    onDrop: (acceptedFiles: FileWithPath[]) => {
+      // Update the type of acceptedFiles to be an array
+      form.setValue("pdfFile", acceptedFiles);
+      console.log(typeof acceptedFiles);
+    },
+  });
+
+  // 2. Define a submit handler.
+  function onSubmit(values: z.infer<typeof CreateFormSchema>) {
+    // Do something with the form values.
+    // ✅ This will be type-safe and validated.
+    // make the filename to the kebab case and remove the spaces
+    const title = values.title.replace(/\s+/g, "-").toLowerCase();
+    router.push(`dashboard/lecture/${title}`);
+    console.log(values);
+  }
+  return (
+    <div className="max-w-2xl w-full m-20">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Python Crash Course" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="pdfFile"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <div
+                    className={cn(
+                      "border flex flex-col justify-center items-center py-10 space-y-2",
+                      form.getValues("pdfFile")
+                        ? "border-solid"
+                        : "border-dashed"
+                    )}
+                    {...getRootProps()}
+                  >
+                    {form.getValues("pdfFile") ? (
+                      <FileIcon className="w-10 h-10" />
+                    ) : (
+                      <UploadCloudIcon className="w-10 h-10" />
+                    )}
+                    {form.getValues("pdfFile") ? (
+                      <p className="text-xs">
+                        {form.getValues("pdfFile")[0].path}
+                      </p>
+                    ) : (
+                      <p className="text-xs">
+                        Drag and drop your PDF file here or{" "}
+                        <span className="text-blue-500">browse</span>
+                      </p>
+                    )}
+                    <Input {...getInputProps()} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full">
+            Create
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+};
+
+export default CreateForm;
