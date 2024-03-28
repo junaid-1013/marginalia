@@ -13,14 +13,13 @@ export default function Home() {
         </p>
       </div>
       <div className="flex flex-col space-y-10">
-        <p>Protected Routes</p>
         <Link
-          href="/dashboard"
+          href="/chats"
           className={buttonVariants({
             variant: "default",
           })}
         >
-          Dashboard
+          Chats
         </Link>
       </div>
       <div className="flex gap-5">

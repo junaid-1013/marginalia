@@ -54,13 +54,15 @@ const CreateForm = () => {
       pdfUrl: pdfLink,
       userId: data?.user?.id as string,
     };
-    const chat = await fetch("/api/chat", {
+    const response = await fetch("/api/chat", {
       method: "POST",
       body: JSON.stringify(chatConfig),
     });
-    // const title = values.title.replace(/\s+/g, "-").toLowerCase();
-    // router.push(`dashboard/lecture/${title}`);
-    console.log(values);
+    const chat = await response.json();
+    const title = values.title.replace(/\s+/g, "-").toLowerCase();
+    // TODO: Add a progress bar for the file upload and after that redirect to the lecture page
+    router.push(`/chats/${chat.id}`);
+    console.log({ values });
   }
   return (
     <div className="max-w-2xl w-full m-20">

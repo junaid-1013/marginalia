@@ -10,6 +10,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
   const { name, pdfUrl, userId } = payload;
+
   const chat = await initializeChat({ name, userId, pdfUrl });
   return Response.json(chat);
 }

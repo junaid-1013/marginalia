@@ -20,4 +20,4 @@ export const apiAuthPrefix: string = "/api/auth";
  * The default redirect URL after a user logs in. /dashboard
  * @type {string}
  */
-export const DEFAULT_REDIRECT_URL: string = "/dashboard";
+export const DEFAULT_REDIRECT_URL: string = "/chats";
