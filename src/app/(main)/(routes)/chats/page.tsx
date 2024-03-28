@@ -27,7 +27,7 @@ const ChatsPage = async () => {
         <div className="flex gap-10 my-10">
           <button className="border border-black aspect-square w-40 rounded-md cursor-pointer">
             <Link
-              href="/create"
+              href="/chats/create"
               className="bg-red-500 w-full h-full flex items-center  justify-center"
             >
               <PlusIcon className="text-amber-950 w-10 h-10" />
