@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { cache } from "react";
 
 interface IProps {
   userId: string;
@@ -28,7 +29,7 @@ export const initializeChat = async ({ userId, name, pdfUrl }: IProps) => {
   }
 };
 
-export const getUserChats = async (userId: string) => {
+export const getUserChats = cache(async (userId: string) => {
   "use server";
   try {
     const chats = await db.chat.findMany({
@@ -42,4 +43,20 @@ export const getUserChats = async (userId: string) => {
     console.log(e);
     return null;
   }
-};
+});
+
+export const getUserChat = cache(async (chatId: string) => {
+  "use server";
+  try {
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+    });
+    console.log({ chat });
+    return chat;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
+});
