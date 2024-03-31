@@ -44,22 +44,42 @@ const CreateForm = () => {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof CreateFormSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    // make the filename to the kebab case and remove the spaces
     const pdfLink = await uploadFile(values.pdfFile[0]);
 
     const chatConfig = {
       name: values.title,
-      pdfUrl: pdfLink,
+      uploadPath: `uploads/${values.pdfFile[0].name}`,
+      pdfLink: pdfLink,
       userId: data?.user?.id as string,
     };
     const response = await fetch("/api/chat", {
       method: "POST",
       body: JSON.stringify(chatConfig),
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to create chat");
+    }
+
     const chat = await response.json();
-    const title = values.title.replace(/\s+/g, "-").toLowerCase();
+
+    if (!chat || !chat.id) {
+      throw new Error("Invalid chat data received from the server");
+    }
+
+    console.log({ chat });
+
+    const splitDocResponse = await fetch("/api/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({ uploadPath: chatConfig.uploadPath }),
+    });
+
+    if (!splitDocResponse.ok) {
+      throw new Error("Failed to split the document");
+    }
+    const splitDoc = await splitDocResponse.json();
+    console.log({ splitDoc }, "splitDoc from  the client");
+
     // TODO: Add a progress bar for the file upload and after that redirect to the lecture page
     router.push(`/chats/${chat.id}`);
     console.log({ values });

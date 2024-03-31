@@ -10,7 +10,7 @@ const ChatsPage = async () => {
     | {
         id: string;
         name: string;
-        pdfUrl: string;
+        pdfLink: string;
         createdAt: Date;
         updatedAt: Date;
         userId: string;

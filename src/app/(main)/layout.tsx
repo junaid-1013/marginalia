@@ -28,7 +28,7 @@ const MainLayout = ({ children }: IProps) => {
           </form>
         </div>
       </header>
-      <main className="container">{children}</main>
+      <main className="">{children}</main>
     </>
   );
 };

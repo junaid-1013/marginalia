@@ -28,5 +28,5 @@ export const geetUserById = async (id: string) => {
 interface IProps {
   userId: string;
   name: string;
-  pdfUrl: string;
+  pdfLink: string;
 }

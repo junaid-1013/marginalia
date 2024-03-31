@@ -6,10 +6,16 @@ import { cache } from "react";
 interface IProps {
   userId: string;
   name: string;
-  pdfUrl: string;
+  pdfLink: string;
+  uploadPath: string;
 }
 
-export const initializeChat = async ({ userId, name, pdfUrl }: IProps) => {
+export const initializeChat = async ({
+  userId,
+  name,
+  pdfLink,
+  uploadPath,
+}: IProps) => {
   try {
     const chat = await db.chat.create({
       data: {
@@ -19,7 +25,8 @@ export const initializeChat = async ({ userId, name, pdfUrl }: IProps) => {
           },
         },
         name,
-        pdfUrl,
+        pdfLink,
+        uploadPath,
       },
     });
     return chat;

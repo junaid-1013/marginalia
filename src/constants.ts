@@ -9,3 +9,8 @@ export const FIREBASE = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+export const QDRANT = {
+  url: process.env.QDRANT_HOST,
+  apiKey: process.env.QDRANT_API_KEY,
+  collection: process.env.QDRANT_COLLECTION,
+};

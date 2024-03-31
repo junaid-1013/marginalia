@@ -3,14 +3,15 @@ import { initializeChat } from "@/services/db/chat";
 
 interface IBody {
   name: string;
-  pdfUrl: string;
+  pdfLink: string;
+  uploadPath: string;
   userId: string;
 }
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
-  const { name, pdfUrl, userId } = payload;
+  const { name, pdfLink, userId, uploadPath } = payload;
 
-  const chat = await initializeChat({ name, userId, pdfUrl });
+  const chat = await initializeChat({ name, userId, pdfLink, uploadPath });
   return Response.json(chat);
 }
