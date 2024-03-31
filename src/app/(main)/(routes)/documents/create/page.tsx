@@ -1,6 +1,6 @@
 import CreateForm from "@/components/forms/create";
 
-const CreatePage = () => {
+const CreateDocumentPage = () => {
   return (
     <div className="flex justify-center min-h-screen">
       <CreateForm />
@@ -8,4 +8,4 @@ const CreatePage = () => {
   );
 };
 
-export default CreatePage;
+export default CreateDocumentPage;
