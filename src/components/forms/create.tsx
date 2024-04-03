@@ -48,11 +48,11 @@ const CreateForm = () => {
 
     const chatConfig = {
       name: values.title,
-      uploadPath: `uploads/${values.pdfFile[0].name}`,
+      pdfStoragePath: `uploads/${values.pdfFile[0].name}`,
       pdfLink: pdfLink,
       userId: data?.user?.id as string,
     };
-    const response = await fetch("/api/chat", {
+    const response = await fetch("/api/init-chat", {
       method: "POST",
       body: JSON.stringify(chatConfig),
     });
@@ -69,9 +69,9 @@ const CreateForm = () => {
 
     console.log({ chat });
 
-    const splitDocResponse = await fetch("/api/ai/chat", {
+    const splitDocResponse = await fetch("/api/ai/test", {
       method: "POST",
-      body: JSON.stringify({ uploadPath: chatConfig.uploadPath }),
+      body: JSON.stringify({ pdfStoragePath: chatConfig.pdfStoragePath }),
     });
 
     if (!splitDocResponse.ok) {

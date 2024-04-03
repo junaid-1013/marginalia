@@ -41,7 +41,8 @@ model Chat {
   id          String     @id @default(cuid())
   name        String     @unique
   pdfLink     String
-  uploadPath  String
+  pdfStoragePath  String
+  collectionName String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   messages    Messages[]

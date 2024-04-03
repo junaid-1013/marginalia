@@ -15,11 +15,11 @@ const ChatPage = async ({ params }: IProps) => {
   console.log({ chat });
   return (
     <div className="flex min-h-screen h-full">
-      <div className="flex-1">
-        <ChatCard />
+      <div className="flex-1 w-1/2 max-h-screen">
+        <ChatCard chat={chat} />
       </div>
       <div className="w-px bg-black" />
-      <div className="flex-1">
+      <div className="flex-1 w-1/2">
         {chat?.pdfLink && <PdfViewer pdfLink={chat.pdfLink} />}
       </div>
     </div>

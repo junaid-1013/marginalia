@@ -7,15 +7,17 @@ interface IProps {
   userId: string;
   name: string;
   pdfLink: string;
-  uploadPath: string;
+  pdfStoragePath: string;
 }
 
 export const initializeChat = async ({
   userId,
   name,
   pdfLink,
-  uploadPath,
+  pdfStoragePath,
 }: IProps) => {
+  const collectionName = `${name.toLowerCase().replace(/\s/g, "-")}-${userId}`;
+  console.log({ name, collectionName });
   try {
     const chat = await db.chat.create({
       data: {
@@ -26,7 +28,8 @@ export const initializeChat = async ({
         },
         name,
         pdfLink,
-        uploadPath,
+        pdfStoragePath,
+        collectionName,
       },
     });
     return chat;
@@ -67,3 +70,18 @@ export const getUserChat = cache(async (chatId: string) => {
     return null;
   }
 });
+
+// export const getCollectionNameByChatId = cache(async (chatId: string) => {
+//   "use server";
+//   try {
+//     const chat = await db.chat.findUnique({
+//       where: {
+//         id: chatId,
+//       },
+//     });
+//     return chat?.collectionName;
+//   } catch (e) {
+//     console.log(e);
+//     return null;
+//   }
+// });

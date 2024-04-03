@@ -1,70 +1,48 @@
 "use server";
+// TODO: make this file to the sepatation of concent like ingest, etc...
 
+import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { QdrantClient } from "@qdrant/js-client-rest";
 import { WebPDFLoader } from "langchain/document_loaders/web/pdf";
+import { QdrantVectorStore } from "@langchain/community/vectorstores/qdrant";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { pull } from "langchain/hub";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { formatDocumentsAsString } from "langchain/util/document";
+import {
+  RunnableSequence,
+  RunnablePassthrough,
+} from "@langchain/core/runnables";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { StreamingTextResponse, LangChainStream, Message } from "ai";
+import { RetrievalQAChain } from "langchain/chains";
+import {
+  ChatPromptTemplate,
+  HumanMessagePromptTemplate,
+  SystemMessagePromptTemplate,
+} from "@langchain/core/prompts";
 
 import { firebaseStorage } from "@/lib/firebase";
 import { getDownloadURL } from "@firebase/storage";
 import { ref } from "firebase/storage";
+import { OPENAI_API_KEY, QDRANT } from "@/constants";
+import { db } from "@/lib/db";
 // TODO: see some better ways
 
-// export const downloadFile = (path: string) => {
-//   const fromReference = ref(firebaseStorage, path);
-//   getBlob(fromReference)
-//     .then((blob) => {
-//       console.log("blob: ", blob);
-//     })
-//     .catch((error) => {
-//       console.log("error downloading file: ", error);
-//     });
-// };
+let qdClient: QdrantClient | null = null;
+export const getQDrantClient = () => {
+  if (!qdClient) {
+    qdClient = new QdrantClient({
+      url: QDRANT.url,
+      apiKey: QDRANT.apiKey,
+    });
+  }
 
-// using async await
+  return qdClient;
+};
 
-// FUNCTION IF PDF FILE DOWNLOAD in the temp folder, so we will use fs/pdf
-
-// export const downloadFile = async (path: string) => {
-//   const fromReference = ref(firebaseStorage, path);
-//   try {
-//     const blob = await getBlob(fromReference);
-//     const arrayBuffer = await blob.arrayBuffer();
-//     const tempPath = `${os.tmpdir()}/${path}`;
-//     fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
-//     // TODO:save this into the temp folder
-//     console.log("downloadPdf - tempPath: ", tempPath);
-//     console.log("downloadPdf - blob: ", blob);
-//     return tempPath;
-//   } catch (error) {
-//     console.log("error downloading file: ", error);
-//   }
-// };
-
-// FUNCTION if we want to download the file and want to load that blob, so we will use web/pdf
-// export const downloadFile = async (path: string) => {
-//   console.log("welcome in downloadfile FM");
-//   const fromReference = ref(firebaseStorage, path);
-//   try {
-//     const stream = getStream(fromReference);
-//     console.log("stream: ", stream);
-//     const tempFilePath = `${os.tmpdir()}/${path}`;
-//     console.log("tempFilePath: ", tempFilePath);
-//     await fs.promises.mkdir(`${os.tmpdir()}/uploads`, { recursive: true });
-
-//     const writeStream = fs.createWriteStream(tempFilePath);
-//     console.log("writeStream: ", writeStream);
-//     stream.pipe(writeStream);
-
-//     await new Promise((resolve, reject) => {
-//       writeStream.on("finish", resolve);
-//       writeStream.on("error", reject);
-//     });
-//     console.log("File saved to:", tempFilePath);
-//     return tempFilePath;
-//     // make this stream to blob
-//   } catch (error) {
-//     console.log("error downloading file: ", error);
-//   }
-// };
-
+// METHODS
 export const downloadPdf = async (path: string) => {
   try {
     // Get the download URL for the file
@@ -83,35 +61,160 @@ export const downloadPdf = async (path: string) => {
     return null;
   }
 };
-export const loadPdfIntoQdrant = async (path: string) => {
-  // console.log("entered inside loadpdfinto qdrant", path);
-  const blob = await downloadPdf(path);
-  // console.log("exit loadpdfinto qdrant blob: ", blob);
+
+interface ILoadPdfIntoVectorStoreProps {
+  pdfStoragePath: string;
+  collectionName: string;
+}
+export const loadPdfIntoVectorStore = async ({
+  pdfStoragePath,
+  collectionName,
+}: ILoadPdfIntoVectorStoreProps) => {
+  // Load docs
+  const blob = await downloadPdf(pdfStoragePath);
   if (!blob) {
-    throw new Error("Failed to download blob");
+    console.log(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
+    throw new Error(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
   }
-  // console.log("SUBHANALLAHI WAL HAMDULILLAH", blob);
-
   const loader = new WebPDFLoader(blob);
-  const docs = await loader.load();
-  console.log({ docs, length: docs.length });
-  return docs;
-  // const loader = new PDFLoader(filePath);
-  // const docs = await loader.load();
+  const documents = await loader.load();
+  // Split
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 500,
+    chunkOverlap: 50,
+  });
+  const chunks = await splitter.splitDocuments(documents);
 
-  // console.log({ docs, length: docs.length });
-  // return docs;
+  const embeddings = new OpenAIEmbeddings();
+  const qdrantClient = getQDrantClient();
+  const vectorStore = await QdrantVectorStore.fromDocuments(
+    chunks,
+    embeddings,
+    {
+      client: qdrantClient,
+      collectionName,
+      collectionConfig: {
+        vectors: {
+          size: 1536,
+          distance: "Cosine",
+        },
+      },
+    }
+  );
+
+  const collections = qdrantClient.getCollections();
+  vectorStore.addDocuments(chunks);
+
+  console.log({ collections, pdfStoragePath, collectionName });
+
+  // Initialize a retriever wrapper around the vector store
+  // const retriever = vectorStore.asRetriever();
+  // const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");
+  // const llm = new ChatOpenAI({ modelName: "gpt-3.5-turbo", temperature: 0 });
+  // const ragChain = await createStuffDocumentsChain({
+  //   llm,
+  //   prompt,
+  //   outputParser: new StringOutputParser(),
+  // });
 };
-// export const loadPdfIntoQdrant = async (path: string) => {
-//   console.log("entered inside loadpdfinto qdrant", path);
-//   const filePath = await downloadPdf(path);
-//   console.log("exit loadpdfinto qdrant filePath: ", filePath);
-//   if (!filePath) {
-//     throw new Error("Failed to download file");
-//   }
-//   // const loader = new PDFLoader(filePath);
-//   // const docs = await loader.load();
 
-//   // console.log({ docs, length: docs.length });
-//   // return docs;
-// };
+interface IChatFromExistingCollectionProps {
+  collectionName: string;
+  messages: Message[];
+}
+
+// TODO: make this function more better
+// implement messages and context
+// maintain history of the messages
+
+export const ChatFromExistingCollection = async ({
+  collectionName,
+  messages,
+}: IChatFromExistingCollectionProps) => {
+  // const { stream, handlers } = LangChainStream();
+
+  const qdrantClient = getQDrantClient();
+  const vectorStore = await QdrantVectorStore.fromExistingCollection(
+    new OpenAIEmbeddings(),
+    {
+      client: qdrantClient,
+      collectionName,
+    }
+  );
+
+  // const collection = await qdrantClient.getCollection(collectionName); // this is info provider
+
+  const retriever = vectorStore.asRetriever({
+    k: 5,
+    verbose: true,
+  });
+
+  // const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");
+  // const prompt =
+  //   PromptTemplate.fromTemplate(`Answer the question based only on the following context:
+  // {context}
+
+  // Question: {question}`);
+  // console.log("hosda", {
+  //   prompt,
+  //   // retriever,
+  //   collection: collection.segments_count,
+  //   collectionName,
+  //   messages,
+  // });
+  const llm = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo",
+    temperature: 0.1,
+    maxTokens: 512,
+    openAIApiKey: OPENAI_API_KEY,
+    streaming: true,
+  });
+  // const ragChain = await createStuffDocumentsChain({
+  //   llm,
+  //   prompt,
+  //   outputParser: new StringOutputParser(),
+  // });
+  // const chain = RunnableSequence.from([
+  //   {
+  //     context: retriever.pipe(formatDocumentsAsString),
+  //     question: new RunnablePassthrough(),
+  //   },
+
+  //   prompt,
+  //   llm,
+  //   new StringOutputParser(),
+  // ]);
+  // last message is the question
+
+  // Create a system & human prompt for the chat model
+  const SYSTEM_TEMPLATE = `Use the following pieces of context to answer the question at the end.
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+----------------
+{context}`;
+  const messagesTemplate = [
+    SystemMessagePromptTemplate.fromTemplate(SYSTEM_TEMPLATE),
+    HumanMessagePromptTemplate.fromTemplate("{question}"),
+  ];
+  const prompt = ChatPromptTemplate.fromMessages(messagesTemplate);
+
+  const chain = RunnableSequence.from([
+    {
+      context: retriever.pipe(formatDocumentsAsString),
+      question: new RunnablePassthrough(),
+    },
+    prompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+  const lastUserMessage = messages
+    .filter((message) => message.role === "user")
+    .pop();
+  const answer = chain.invoke(lastUserMessage?.content);
+  console.log({ messages });
+  // console.log({ answer });
+  return answer;
+};

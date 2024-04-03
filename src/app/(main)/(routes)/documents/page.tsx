@@ -40,7 +40,7 @@ const ChatsPage = async () => {
                 className="border border-black aspect-square w-40 rounded-md cursor-pointer"
               >
                 <Link
-                  href={`/chats/${chat.id}`}
+                  href={`/documents/${chat.id}/chat`}
                   className="bg-red-500 w-full h-full flex items-center  justify-center"
                 >
                   {/* style as name, id and created at in  a professional way like nname is bigger and meta deta is smaller */}

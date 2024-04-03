@@ -1,22 +1,23 @@
+import { Configuration, OpenAIApi } from "openai-edge";
 import { NextRequest, NextResponse } from "next/server";
+import { OPENAI_API_KEY } from "@/constants";
+import { OpenAIStream, StreamingTextResponse } from "ai";
 
-import { loadPdfIntoQdrant } from "@/actions/process-pdf";
-import { qdClient } from "@/lib/qdrant";
-
-export async function GET(req: NextRequest, res: NextResponse) {
-  const collections = await qdClient.getCollections();
-  return Response.json(collections);
-}
+const runtime = "edge";
+const config = new Configuration({
+  apiKey: OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(config);
 
 export async function POST(req: NextRequest, res: NextResponse) {
-  const body = await req.json();
   try {
-    if (!body.uploadPath) {
-      throw new Error("uploadPath is required");
-    }
-    const docs = await loadPdfIntoQdrant(body.uploadPath);
-    return Response.json({ length: docs.length, docs });
-  } catch (e) {
-    throw new Error("Failed to load pdf into qdrant");
-  }
+    const { messages } = await req.json();
+    const response = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages,
+      stream: true,
+    });
+    const stream = OpenAIStream(response);
+    return new StreamingTextResponse(stream);
+  } catch (e) {}
 }

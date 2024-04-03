@@ -1,17 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initializeChat } from "@/services/db/chat";
+import {
+  ChatFromExistingCollection,
+  loadPdfIntoVectorStore,
+} from "@/actions/process-pdf";
+import { Message, OpenAIStream, AIStream } from "ai";
 
 interface IBody {
-  name: string;
-  pdfLink: string;
-  uploadPath: string;
-  userId: string;
+  collectionName: string;
+  messages: Message[];
 }
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
-  const { name, pdfLink, userId, uploadPath } = payload;
+  const { collectionName, messages } = payload;
 
-  const chat = await initializeChat({ name, userId, pdfLink, uploadPath });
-  return Response.json(chat);
+  try {
+    const response = await ChatFromExistingCollection({
+      collectionName,
+      messages,
+    });
+    // const stream = AIStream(response);
+    // return new StreamingTextResponse(stream);
+
+    return Response.json(response);
+  } catch (e) {
+    console.error(e);
+    return Response.json(
+      { error: "Failed to initialize chat" },
+      { status: 401 }
+    );
+  }
 }
