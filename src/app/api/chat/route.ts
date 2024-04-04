@@ -4,7 +4,7 @@ import {
   ChatFromExistingCollection,
   loadPdfIntoVectorStore,
 } from "@/actions/process-pdf";
-import { Message, OpenAIStream, AIStream } from "ai";
+import { Message, OpenAIStream, AIStream, StreamingTextResponse } from "ai";
 
 interface IBody {
   collectionName: string;
@@ -20,10 +20,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       collectionName,
       messages,
     });
-    // const stream = AIStream(response);
-    // return new StreamingTextResponse(stream);
-
-    return Response.json(response);
+    return new StreamingTextResponse(response);
   } catch (e) {
     console.error(e);
     return Response.json(

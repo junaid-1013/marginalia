@@ -210,11 +210,14 @@ If you don't know the answer, just say that you don't know, don't try to make up
     llm,
     new StringOutputParser(),
   ]);
+  const { stream, handlers } = LangChainStream();
+
   const lastUserMessage = messages
     .filter((message) => message.role === "user")
     .pop();
-  const answer = chain.invoke(lastUserMessage?.content);
-  console.log({ messages });
-  // console.log({ answer });
-  return answer;
+
+  chain.invoke(lastUserMessage?.content, {
+    callbacks: [handlers],
+  });
+  return stream;
 };
