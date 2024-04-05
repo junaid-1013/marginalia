@@ -92,7 +92,6 @@ export default function LoginForm() {
                 <FormControl>
                   <PasswordInput
                     id="password"
-                    type="password"
                     placeholder="Enter your password"
                     disabled={isLoading}
                     className="p-5"

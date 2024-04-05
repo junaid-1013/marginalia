@@ -3,12 +3,12 @@
 import React from "react";
 import { useChat } from "ai/react";
 import { SendIcon } from "lucide-react";
+import { type Chat } from "@prisma/client";
 
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
-import { type Chat } from "@prisma/client";
 
 type Props = {
   chat: Chat | null;
@@ -42,16 +42,15 @@ const ChatCard = ({ chat }: Props) => {
           ))}
         </div>
       </CardContent>
-      <CardFooter className="sticky bottom-0 bg-background/70 backdrop-blur-md py-5">
+      <CardFooter className="sticky bottom-0 bg-background/75 backdrop-blur-md py-5">
         <form
           onSubmit={handleSubmit}
-          className="flex w-full items-center space-x-2"
+          className="flex w-full items-center justify-between space-x-2"
         >
           <Input
             id="message"
             placeholder="Type your message..."
-            className="flex-1"
-            autoComplete="off"
+            wrapperClassName="flex-grow"
             value={input}
             onChange={handleInputChange}
           />

@@ -14,12 +14,12 @@ export default function Home() {
       </div>
       <div className="flex flex-col space-y-10">
         <Link
-          href="/chats"
+          href="/documents"
           className={buttonVariants({
             variant: "default",
           })}
         >
-          Chats
+          Documents
         </Link>
       </div>
       <div className="flex gap-5">
