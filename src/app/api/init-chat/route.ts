@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { initializeChat } from "@/services/db/chat";
-import { loadPdfIntoVectorStore } from "@/actions/process-pdf";
 
 interface IBody {
   name: string;
@@ -12,7 +12,6 @@ export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
   const { name, pdfLink, userId, pdfStoragePath } = payload;
-
   try {
     const chat = await initializeChat({
       name,
@@ -21,24 +20,14 @@ export async function POST(req: NextRequest, res: NextResponse) {
       pdfStoragePath,
     });
 
-    if (!chat) {
-      return Response.json(
-        { error: "Failed to initialize chat" },
-        { status: 401 }
-      );
-    }
-
-    const document = await loadPdfIntoVectorStore({
-      pdfStoragePath,
-      collectionName: chat.collectionName,
-    });
-
-    return Response.json({ chat, document });
-  } catch (e) {
-    console.error(e);
     return Response.json(
-      { error: "Failed to initialize chat" },
-      { status: 401 }
+      { chat },
+      {
+        status: 201,
+      }
     );
+  } catch (e: any) {
+    console.error("error from thte route junaid", e);
+    return Response.json({ error: e?.message as string }, { status: 500 });
   }
 }

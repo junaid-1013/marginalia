@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { PlusIcon } from "lucide-react";
+import {
+  InboxIcon as EmptyBoxIcon,
+  PlusCircleIcon,
+  PlusIcon,
+} from "lucide-react";
 
 import { auth } from "@/auth";
 import { getUserChats } from "@/services/db/chat";
@@ -40,21 +44,21 @@ const ChatsPage = async () => {
           </h2>
           <Link
             href="/documents/create"
-            className={cn(buttonVariants({ variant: "default" }))}
+            className={cn(buttonVariants({ variant: "default" }), "space-x-2")}
           >
-            Create Chat
+            <PlusCircleIcon className="w-4 h-4" />
+            <span>Add document</span>
           </Link>
         </div>
-        <div className="flex gap-5 my-10">
-          {/* <Link
-            href="/documents/create"
-            className={cn(
-              buttonVariants({ variant: "default" }),
-              "flex h-full"
-            )}
-          >
-            <PlusIcon className="w-10 h-10" />
-          </Link> */}
+        <div className="flex flex-wrap gap-5 my-10 relative">
+          {chats?.length == 0 && (
+            <div className="absolte top-1/2 left-1/2 flex flex-col items-center justify-center w-full h-96">
+              <EmptyBoxIcon className="w-24 h-24 text-muted-foreground" />
+              <p className="text-lg text-muted-foreground">
+                No documents found
+              </p>
+            </div>
+          )}
           {chats &&
             chats.map((chat, i) => (
               <Link key={chat.id} href={`/documents/${chat.id}/chat`}>
@@ -66,7 +70,6 @@ const ChatsPage = async () => {
                         : chat.name}
                     </CardTitle>
                     <CardDescription>
-                      {/* create the chat.updateAt as date to make a readable string as the description */}
                       {chat.updatedAt.toLocaleString()}
                     </CardDescription>
                   </CardHeader>

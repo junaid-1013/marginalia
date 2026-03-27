@@ -1,7 +1,8 @@
 "use server";
 
-import { db } from "@/lib/db";
 import { cache } from "react";
+import { PrismaClient, Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 
 interface IProps {
   userId: string;
@@ -17,7 +18,6 @@ export const initializeChat = async ({
   pdfStoragePath,
 }: IProps) => {
   const collectionName = `${name.toLowerCase().replace(/\s/g, "-")}-${userId}`;
-  console.log({ name, collectionName });
   try {
     const chat = await db.chat.create({
       data: {
@@ -34,8 +34,23 @@ export const initializeChat = async ({
     });
     return chat;
   } catch (e) {
-    console.log(e);
-    return null;
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e.code === "P2002") {
+        throw new Error("Chat Name already exists, it must be unique.");
+        // return {
+        //   status: 400,
+        //   code: e.code,
+        //   message: "Chat Name already existsc, it must be unique.",
+        // };
+      } else {
+        throw new Error(e.message);
+        // return {
+        //   stutes: 500,
+        //   code: e.code,
+        //   message: e.message,
+        // };
+      }
+    }
   }
 };
 
@@ -47,7 +62,7 @@ export const getUserChats = cache(async (userId: string) => {
         userId,
       },
     });
-    console.log({ chats });
+    // console.log({ chats });
     return chats;
   } catch (e) {
     console.log(e);
@@ -63,7 +78,6 @@ export const getUserChat = cache(async (chatId: string) => {
         id: chatId,
       },
     });
-    console.log({ chat });
     return chat;
   } catch (e) {
     console.log(e);

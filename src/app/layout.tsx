@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/providers/theme-provider";
+
+import { ThemeProvider, ReactQueryProvider } from "@/providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,17 +19,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = null; // Replace null with the actual value of the session variable
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <SessionProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-          </ThemeProvider>
+          <ReactQueryProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              {children}
+              <Toaster richColors position="top-center" />
+            </ThemeProvider>
+          </ReactQueryProvider>
         </SessionProvider>
       </body>
-      <Toaster richColors position="top-right" />
     </html>
   );
 }

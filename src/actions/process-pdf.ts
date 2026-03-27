@@ -81,13 +81,13 @@ export const loadPdfIntoVectorStore = async ({
     );
   }
   const loader = new WebPDFLoader(blob);
-  const documents = await loader.load();
+  const doc = await loader.load();
   // Split
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 500,
     chunkOverlap: 50,
   });
-  const chunks = await splitter.splitDocuments(documents);
+  const chunks = await splitter.splitDocuments(doc);
 
   const embeddings = new OpenAIEmbeddings();
   const qdrantClient = getQDrantClient();
@@ -106,11 +106,9 @@ export const loadPdfIntoVectorStore = async ({
     }
   );
 
-  const collections = qdrantClient.getCollections();
+  const collection = qdrantClient.getCollection(collectionName);
   vectorStore.addDocuments(chunks);
-
-  console.log({ collections, pdfStoragePath, collectionName });
-
+  return collection;
   // Initialize a retriever wrapper around the vector store
   // const retriever = vectorStore.asRetriever();
   // const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");

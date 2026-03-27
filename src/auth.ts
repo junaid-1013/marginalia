@@ -15,7 +15,6 @@ export const {
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
-      // console.log("session", session);
       return session;
     },
   },

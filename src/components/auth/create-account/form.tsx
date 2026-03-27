@@ -38,20 +38,16 @@ export default function LoginForm() {
   });
 
   function onSubmit(values: createAccountFormData) {
-    // console.log(values);
-    // alert(JSON.stringify(values, null, 2));
     setTransition(async () => {
       const response = await signup(values);
       if (response.error) {
         toast.error(response.error);
-        // console.log(response.error);
         form.reset();
         return;
       }
       if (response.success) {
         toast.success(response.success);
         form.reset();
-        // console.log(response.success);
         return;
       }
     });

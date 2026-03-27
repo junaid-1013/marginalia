@@ -19,7 +19,6 @@ export default auth((req) => {
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
-  // console.log("YES, MIDDLEWARE WORKS");
 
   if (isApiAuthRoute) {
     return;
