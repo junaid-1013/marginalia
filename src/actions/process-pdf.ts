@@ -28,6 +28,7 @@ import { getDownloadURL } from "@firebase/storage";
 import { ref } from "firebase/storage";
 import { OPENAI_API_KEY, QDRANT } from "@/constants";
 import { db } from "@/lib/db";
+import { saveMessage } from "@/services/db/chat";
 // TODO: see some better ways
 
 let qdClient: QdrantClient | null = null;
@@ -65,10 +66,12 @@ export const downloadPdf = async (path: string) => {
 interface ILoadPdfIntoVectorStoreProps {
   pdfStoragePath: string;
   collectionName: string;
+  chatId: string;
 }
 export const loadPdfIntoVectorStore = async ({
   pdfStoragePath,
   collectionName,
+  chatId,
 }: ILoadPdfIntoVectorStoreProps) => {
   // Load docs
   const blob = await downloadPdf(pdfStoragePath);
@@ -123,6 +126,7 @@ export const loadPdfIntoVectorStore = async ({
 interface IChatFromExistingCollectionProps {
   collectionName: string;
   messages: Message[];
+  chatId: string;
 }
 
 // TODO: make this function more better
@@ -132,7 +136,12 @@ interface IChatFromExistingCollectionProps {
 export const ChatFromExistingCollection = async ({
   collectionName,
   messages,
+  chatId,
 }: IChatFromExistingCollectionProps) => {
+  console.log(
+    { collectionName, messages, chatId },
+    "Secondly ChatFromExistingCollection  🌞"
+  );
   // const { stream, handlers } = LangChainStream();
 
   const qdrantClient = getQDrantClient();
@@ -213,9 +222,14 @@ If you don't know the answer, just say that you don't know, don't try to make up
   const lastUserMessage = messages
     .filter((message) => message.role === "user")
     .pop();
+  saveMessage({
+    chatId,
+    message: lastUserMessage as Message,
+  });
 
   chain.invoke(lastUserMessage?.content, {
     callbacks: [handlers],
   });
+
   return stream;
 };

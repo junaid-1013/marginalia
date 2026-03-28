@@ -3,6 +3,7 @@
 import { cache } from "react";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { Message } from "ai";
 
 interface IProps {
   userId: string;
@@ -99,3 +100,57 @@ export const getUserChat = cache(async (chatId: string) => {
 //     return null;
 //   }
 // });
+
+export const saveMessage = async ({
+  chatId,
+  message,
+}: {
+  chatId: string;
+  message: Message;
+}) => {
+  "use server";
+  try {
+    console.log({ chatId, message }, "lastly fromm the db service🚀");
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+    });
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+    const updatedChat = await db.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        messages: {
+          create: message,
+        },
+      },
+    });
+
+    return updatedChat;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to save chat messages");
+  }
+};
+
+export const getChatMessages = async (chatId: string) => {
+  "use server";
+  try {
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+      include: {
+        messages: true,
+      },
+    });
+    return chat?.messages;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to fetch chat messages");
+  }
+};

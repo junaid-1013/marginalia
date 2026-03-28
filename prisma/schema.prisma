@@ -45,20 +45,29 @@ model Chat {
   collectionName String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  messages    Messages[]
+  messages    Message[]
   user        User      @relation(fields: [userId], references: [id])
   userId      String
 }
-
-model Messages {
+// {
+//     "id": "pmGFMnJ",
+//     "createdAt": "2024-04-08T06:49:52.928Z",
+//     "content": "The provided context is related to vehicle application tracking and verification in Punjab, Pakistan. It includes details such as the application type (new registration), current status (in progress), information verification website (www.mtmis.excise.punjab.gov.pk), and the entities involved (Excise & Taxation Department and Punjab Information Technology Board). Additionally, specific vehicle information is provided, including registration number, owner details (PAK SUZUKI MOTOR CO LTD), payment details, vehicle details (make, engine number, registration date, year of manufacture, price, color), and token information (lifetime).",
+//     "role": "assistant"
+// }
+model Message {
   id        String @id @default(cuid())
   createdAt DateTime @default(now())
+  content   String
+  role      Role  @default(user)
   chat      Chat   @relation(fields: [chatId], references: [id])
   chatId    String
-  role      Role  @default(USER)
 }
-
 enum Role {
-  USER
-  SYSTEM
+  user
+  assistant
+  system
+  tool
+  function
+  data
 }

@@ -13,7 +13,7 @@ import { getUserChat } from "@/services/db/chat";
 const ChatPage = async ({ params }: IProps) => {
   const chat = await getUserChat(params.id as string);
   return (
-    <div className="flex min-h-screen h-full">
+    <div className="flex max-h-[calc(100vh-81px)] h-full">
       <div className="flex-1 w-1/2 max-h-screen">
         <ChatCard chat={chat} />
       </div>

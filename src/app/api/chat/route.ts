@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initializeChat } from "@/services/db/chat";
+import { initializeChat, saveMessage } from "@/services/db/chat";
 import {
   ChatFromExistingCollection,
   loadPdfIntoVectorStore,
@@ -8,17 +8,20 @@ import { Message, OpenAIStream, AIStream, StreamingTextResponse } from "ai";
 
 interface IBody {
   collectionName: string;
+  chatId: string;
   messages: Message[];
 }
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
-  const { collectionName, messages } = payload;
+  const { collectionName, messages, chatId } = payload;
+  console.log({ collectionName, messages, chatId }, "Firsst Route 🌚");
 
   try {
     const response = await ChatFromExistingCollection({
       collectionName,
       messages,
+      chatId,
     });
     return new StreamingTextResponse(response);
   } catch (e) {
@@ -29,3 +32,5 @@ export async function POST(req: NextRequest, res: NextResponse) {
     );
   }
 }
+
+// TODO: see the better way to save the chat messages

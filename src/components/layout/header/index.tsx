@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { SearchIcon } from "lucide-react";
 
@@ -12,12 +14,22 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 const Header = () => {
+  const pathname = usePathname();
+  // detect if the path is something like /documents/[id]/* but not /documents, in boolean but not matched object
+  const isDocumentIdPage = /\/documents\/[^/]+\/.*/.test(pathname);
+
   return (
     <div className="bg-background/75 backdrop-blur-lg border-b border-b-muted shadow-sm sticky top-0 left-0 w-full z-50">
       <TooltipProvider>
-        <header className="container flex justify-between py-4 px-8 h-20 items-center sticky top-0 z-50">
+        <header
+          className={cn(
+            "flex justify-between py-4 px-8 h-20 items-center sticky top-0 z-50",
+            isDocumentIdPage ? "mx-auto px-5" : "container"
+          )}
+        >
           <div className="flex">
             <Link href="/" className={cn(buttonVariants({ variant: "link" }))}>
               Home
