@@ -66,12 +66,10 @@ export const downloadPdf = async (path: string) => {
 interface ILoadPdfIntoVectorStoreProps {
   pdfStoragePath: string;
   collectionName: string;
-  chatId: string;
 }
 export const loadPdfIntoVectorStore = async ({
   pdfStoragePath,
   collectionName,
-  chatId,
 }: ILoadPdfIntoVectorStoreProps) => {
   // Load docs
   const blob = await downloadPdf(pdfStoragePath);
