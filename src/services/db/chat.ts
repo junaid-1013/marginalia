@@ -125,7 +125,13 @@ export const saveMessage = async ({
       },
       data: {
         messages: {
-          create: message,
+          create: {
+            // destructureing becuase of the BaseMessage of the Llangchain when passing in the history chain
+            id: message.id,
+            content: message.content,
+            createdAt: message.createdAt,
+            role: message.role,
+          },
         },
       },
     });

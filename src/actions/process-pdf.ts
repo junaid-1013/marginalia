@@ -3,6 +3,7 @@
 
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantClient } from "@qdrant/js-client-rest";
+import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 import { WebPDFLoader } from "langchain/document_loaders/web/pdf";
 import { QdrantVectorStore } from "@langchain/community/vectorstores/qdrant";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
@@ -13,6 +14,9 @@ import { formatDocumentsAsString } from "langchain/util/document";
 import {
   RunnableSequence,
   RunnablePassthrough,
+  type Runnable,
+  type RunnableConfig,
+  type RunnableLike,
 } from "@langchain/core/runnables";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StreamingTextResponse, LangChainStream, Message } from "ai";
@@ -21,6 +25,7 @@ import {
   ChatPromptTemplate,
   HumanMessagePromptTemplate,
   SystemMessagePromptTemplate,
+  MessagesPlaceholder,
 } from "@langchain/core/prompts";
 
 import { firebaseStorage } from "@/lib/firebase";
@@ -136,12 +141,6 @@ export const ChatFromExistingCollection = async ({
   messages,
   chatId,
 }: IChatFromExistingCollectionProps) => {
-  console.log(
-    { collectionName, messages, chatId },
-    "Secondly ChatFromExistingCollection  🌞"
-  );
-  // const { stream, handlers } = LangChainStream();
-
   const qdrantClient = getQDrantClient();
   const vectorStore = await QdrantVectorStore.fromExistingCollection(
     new OpenAIEmbeddings(),
@@ -150,27 +149,13 @@ export const ChatFromExistingCollection = async ({
       collectionName,
     }
   );
-
   // const collection = await qdrantClient.getCollection(collectionName); // this is info provider
 
   const retriever = vectorStore.asRetriever({
-    k: 5,
+    k: 3, // see it
     verbose: true,
   });
 
-  // const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");
-  // const prompt =
-  //   PromptTemplate.fromTemplate(`Answer the question based only on the following context:
-  // {context}
-
-  // Question: {question}`);
-  // console.log("hosda", {
-  //   prompt,
-  //   // retriever,
-  //   collection: collection.segments_count,
-  //   collectionName,
-  //   messages,
-  // });
   const llm = new ChatOpenAI({
     modelName: "gpt-3.5-turbo",
     temperature: 0.1,
@@ -178,56 +163,73 @@ export const ChatFromExistingCollection = async ({
     openAIApiKey: OPENAI_API_KEY,
     streaming: true,
   });
-  // const ragChain = await createStuffDocumentsChain({
-  //   llm,
-  //   prompt,
-  //   outputParser: new StringOutputParser(),
-  // });
-  // const chain = RunnableSequence.from([
-  //   {
-  //     context: retriever.pipe(formatDocumentsAsString),
-  //     question: new RunnablePassthrough(),
-  //   },
 
-  //   prompt,
-  //   llm,
-  //   new StringOutputParser(),
-  // ]);
-  // last message is the question
-
-  // Create a system & human prompt for the chat model
-  const SYSTEM_TEMPLATE = `Use the following pieces of context to answer the question at the end.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
-----------------
-{context}`;
-  const messagesTemplate = [
-    SystemMessagePromptTemplate.fromTemplate(SYSTEM_TEMPLATE),
-    HumanMessagePromptTemplate.fromTemplate("{question}"),
-  ];
-  const prompt = ChatPromptTemplate.fromMessages(messagesTemplate);
-
-  const chain = RunnableSequence.from([
-    {
-      context: retriever.pipe(formatDocumentsAsString),
-      question: new RunnablePassthrough(),
-    },
-    prompt,
-    llm,
-    new StringOutputParser(),
-  ]);
-  const { stream, handlers } = LangChainStream();
-
+  // XYZ with the messages
   const lastUserMessage = messages
     .filter((message) => message.role === "user")
     .pop();
+
+  const messagesCopy = [...messages];
+  messagesCopy.pop();
+
+  // const lastThreeMessages = messagesCopy.slice(-3);
+  const chatHistory = messagesCopy.map((message) => {
+    if (message.role === "user") {
+      return new HumanMessage(message.content);
+    }
+    return new AIMessage(message.content);
+  });
+
+  const { stream, handlers } = LangChainStream();
+
+  // RAG CHAIN 🤖
+  const qaSystemPrompt = `You are an assistant for question-answering tasks from the document as an instructor of the document.
+  Use the following pieces of retrieved context to answer the question, also get an idea about the user question from the chat history.
+  If you don't know the answer, just say that you don't know.
+
+  {context}`;
+
+  const qaPrompt = ChatPromptTemplate.fromMessages([
+    ["system", qaSystemPrompt],
+    new MessagesPlaceholder("chat_history"),
+    ["human", "{question}"],
+  ]);
+
+  interface IRunnableArg {
+    question: string;
+    chat_history: BaseMessage[];
+  }
+
+  const retrieverChain = RunnableSequence.from([
+    (prevResult) => prevResult.question,
+    retriever,
+    formatDocumentsAsString,
+  ]);
+  const ragChain = RunnableSequence.from([
+    {
+      context: retrieverChain,
+      question: (args) => args.question,
+      chat_history: (args) => args.chat_history,
+    },
+    qaPrompt,
+    llm,
+    new StringOutputParser(),
+  ]);
+
   saveMessage({
     chatId,
     message: lastUserMessage as Message,
   });
 
-  chain.invoke(lastUserMessage?.content, {
-    callbacks: [handlers],
-  });
+  ragChain.invoke(
+    {
+      question: lastUserMessage?.content as string,
+      chat_history: chatHistory,
+    },
+    {
+      callbacks: [handlers],
+    }
+  );
 
   return stream;
 };
