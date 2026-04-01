@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { Provider as BalancerProvider } from "react-wrap-balancer";
 
 import { ThemeProvider, ReactQueryProvider } from "@/providers";
 
@@ -25,7 +26,7 @@ export default function RootLayout({
         <SessionProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              {children}
+              <BalancerProvider>{children}</BalancerProvider>
               <Toaster richColors position="top-center" />
             </ThemeProvider>
           </ReactQueryProvider>

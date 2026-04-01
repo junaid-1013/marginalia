@@ -4,6 +4,7 @@ import React from "react";
 import { useChat } from "ai/react";
 import { SendIcon } from "lucide-react";
 import { type Chat } from "@prisma/client";
+import Balancer from "react-wrap-balancer";
 
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
@@ -66,7 +67,7 @@ const ChatCard = ({ chat }: Props) => {
                     : "bg-muted"
                 )}
               >
-                {message.content}
+                <Balancer>{message.content}</Balancer>
               </div>
             ))}
         </div>
