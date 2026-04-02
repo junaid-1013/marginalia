@@ -61,7 +61,7 @@ const ChatsPage = async () => {
           )}
           {chats &&
             chats.map((chat, i) => (
-              <Link key={chat.id} href={`/documents/${chat.id}/chat`}>
+              <Link key={chat.id} href={`/documents/${chat.id}/view`}>
                 <Card className="hover:bg-primary/5 transition-all">
                   <CardHeader>
                     <CardTitle>

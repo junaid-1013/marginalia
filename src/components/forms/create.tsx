@@ -133,7 +133,7 @@ const CreateForm = () => {
     });
 
     if (!initializedChat.chat.id) return;
-    router.push(`/documents/${initializedChat.chat.id}/chat`);
+    router.push(`/documents/${initializedChat.chat.id}/view`);
   }
 
   useEffect(() => {

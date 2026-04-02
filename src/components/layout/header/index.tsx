@@ -31,15 +31,18 @@ const Header = () => {
           )}
         >
           <div className="flex">
-            <Link href="/" className={cn(buttonVariants({ variant: "link" }))}>
+            <Link
+              href="/documents"
+              className={cn(buttonVariants({ variant: "link" }))}
+            >
               Home
             </Link>
-            <Link
+            {/* <Link
               href="/notes"
               className={cn(buttonVariants({ variant: "link" }))}
             >
               Notes
-            </Link>
+            </Link> */}
           </div>
           <div className="flex items-center space-x-2">
             <Input
