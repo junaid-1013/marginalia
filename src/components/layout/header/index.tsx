@@ -15,9 +15,11 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 
 const Header = () => {
   const pathname = usePathname();
+  const params = useParams();
   // detect if the path is something like /documents/[id]/* but not /documents, in boolean but not matched object
   const isDocumentIdPage = /\/documents\/[^/]+\/.*/.test(pathname);
 
@@ -44,6 +46,7 @@ const Header = () => {
               Notes
             </Link> */}
           </div>
+          {/* document title */}
           <div className="flex items-center space-x-2">
             <Input
               className="w-72"

@@ -1,5 +1,6 @@
 "use server";
 // TODO: make this file to the sepatation of concent like ingest, etc...
+import * as z from "zod";
 
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantClient } from "@qdrant/js-client-rest";
@@ -11,6 +12,14 @@ import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { pull } from "langchain/hub";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { formatDocumentsAsString } from "langchain/util/document";
+import { formatDocument } from "langchain/schema/prompt_template";
+import { BaseCallbackConfig } from "@langchain/core/callbacks/manager";
+import { Document } from "@langchain/core/documents";
+import { StructuredOutputParser } from "langchain/output_parsers";
+import {
+  collapseDocs,
+  splitListOfDocs,
+} from "langchain/chains/combine_documents/reduce";
 import {
   RunnableSequence,
   RunnablePassthrough,
@@ -34,6 +43,7 @@ import { ref } from "firebase/storage";
 import { OPENAI_API_KEY, QDRANT } from "@/constants";
 import { db } from "@/lib/db";
 import { saveMessage } from "@/services/db/chat";
+import { Chat } from "@prisma/client";
 // TODO: see some better ways
 
 let qdClient: QdrantClient | null = null;
@@ -232,4 +242,177 @@ export const ChatFromExistingCollection = async ({
   );
 
   return stream;
+};
+
+// create stuff chain
+export const summarizeDocument = async (chat: Chat) => {
+  const qdrantClient = getQDrantClient();
+
+  // const vectorStore = await QdrantVectorStore.fromExistingCollection(
+  //   new OpenAIEmbeddings(),
+  //   {
+  //     client: qdrantClient,
+  //     collectionName,
+  //   }
+  // );
+  // const retriever = vectorStore.asRetriever({
+  //   k: 3, // see it
+  //   verbose: true,
+  // });
+
+  const model = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo",
+    // temperature: 0.1,
+    // maxTokens: 512,
+    openAIApiKey: OPENAI_API_KEY,
+    // streaming: true,
+  });
+
+  // Define prompt templates for document formatting, summarizing, collapsing, and combining
+  const documentPrompt = PromptTemplate.fromTemplate("{pageContent}");
+  const summarizePrompt = PromptTemplate.fromTemplate(
+    "Summarize this content:\n\n{context}"
+  );
+  const collapsePrompt = PromptTemplate.fromTemplate(
+    "Collapse this content:\n\n{context}"
+  );
+  const combinePrompt = PromptTemplate.fromTemplate(
+    "Combine these summaries:\n\n{context} \n{format_instructions}"
+  );
+
+  // Wrap the `formatDocument` util so it can format a list of documents
+  const formatDocs = async (documents: Document[]): Promise<string> => {
+    const formattedDocs = await Promise.all(
+      documents.map((doc) => formatDocument(doc, documentPrompt))
+    );
+    return formattedDocs.join("\n\n");
+  };
+
+  // Define a function to get the number of tokens in a list of documents
+  const getNumTokens = async (documents: Document[]): Promise<number> =>
+    model.getNumTokens(await formatDocs(documents));
+
+  // Initialize the output parser
+  const outputParser = new StringOutputParser();
+
+  // parser with schema
+  const summmaryOutputSchema = StructuredOutputParser.fromZodSchema(
+    z.object({
+      introduction: z
+        .string()
+        .describe(
+          "introduction to the document, providing the reason for the document"
+        ),
+      abstract: z
+        .string()
+        .describe(
+          "abstract of the document, in the format of the formal abstract of a paper"
+        ),
+      // keyTakeaways: z.string().describe("key takeaways from the document"),
+      // key takeaways will be a description, in bullet points, it it will be list of strings
+      keyTakeaways: z
+        .array(z.string())
+        .describe(
+          "key takeaways from the document, describing each point, each point will be a string"
+        ),
+      tldr: z.string().describe("too long didn't read summary"),
+    })
+  );
+
+  // Define the map chain to format, summarize, and parse the document
+  const mapChain = RunnableSequence.from([
+    { context: async (i: Document) => formatDocument(i, documentPrompt) },
+    summarizePrompt,
+    model,
+    outputParser,
+  ]);
+
+  // Define the collapse chain to format, collapse, and parse a list of documents
+  const collapseChain = RunnableSequence.from([
+    { context: async (documents: Document[]) => formatDocs(documents) },
+    collapsePrompt,
+    model,
+    outputParser,
+  ]);
+
+  // Define a function to collapse a list of documents until the total number of tokens is within the limit
+  const collapse = async (
+    documents: Document[],
+    options?: {
+      config?: BaseCallbackConfig;
+    },
+    tokenMax = 4000
+  ) => {
+    const editableConfig = options?.config;
+    let docs = documents;
+    let collapseCount = 1;
+    while ((await getNumTokens(docs)) > tokenMax) {
+      if (editableConfig) {
+        editableConfig.runName = `Collapse ${collapseCount}`;
+      }
+      const splitDocs = splitListOfDocs(docs, getNumTokens, tokenMax);
+      docs = await Promise.all(
+        splitDocs.map((doc) => collapseDocs(doc, collapseChain.invoke))
+      );
+      collapseCount += 1;
+    }
+    return docs;
+  };
+
+  // Define the reduce chain to format, combine, and parse a list of documents
+  const reduceChain = RunnableSequence.from([
+    {
+      context: formatDocs,
+      format_instructions: () => summmaryOutputSchema.getFormatInstructions(),
+    },
+    combinePrompt,
+    model,
+    summmaryOutputSchema,
+  ]).withConfig({ runName: "Reduce" });
+
+  // Define the final map-reduce chain
+  const mapReduceChain = RunnableSequence.from([
+    RunnableSequence.from([
+      {
+        doc: new RunnablePassthrough(),
+        content: mapChain,
+      },
+      (input) =>
+        new Document({
+          pageContent: input.content,
+          metadata: input.doc.metadata,
+        }),
+    ])
+      .withConfig({ runName: "Summarize (return doc)" })
+      .map(),
+    collapse,
+    reduceChain,
+  ]).withConfig({ runName: "Map reduce" });
+
+  // spliting the doc
+  const blob = await downloadPdf(chat.pdfStoragePath);
+  if (!blob) {
+    console.log(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
+    throw new Error(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
+  }
+  const loader = new WebPDFLoader(blob);
+  const doc = await loader.load();
+
+  // Split
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 100,
+  });
+  const chunks = await splitter.splitDocuments(doc);
+
+  const result = await mapReduceChain.invoke(chunks);
+
+  // Print the result
+  console.log(result);
+
+  return result;
 };
