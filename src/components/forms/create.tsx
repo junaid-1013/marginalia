@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/upload-file";
 import { useMutation } from "@tanstack/react-query";
-import { initChat } from "@/apis";
+import { initChat, summarize } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { processDocument } from "@/apis/process-document";
 import { useEffect, useState } from "react";
@@ -50,6 +50,17 @@ const CreateForm = () => {
   // MUTATIONS
 
   // 1. upload file to the bucket
+
+  const { mutate: generateSummary, isPending } = useMutation({
+    mutationFn: summarize,
+    onSuccess: (data) => {
+      console.log("data", data);
+    },
+    onError: (error) => {
+      console.error("error", error);
+    },
+  });
+
   const {
     mutateAsync: mutateUploadFile,
     isPending: uploadFileIsPending,
@@ -77,6 +88,7 @@ const CreateForm = () => {
     },
     onSuccess: (data) => {
       toast.success("Chat created successfully");
+      generateSummary({ chatId: data.chat.id });
     },
   });
   // 3. get document, load and split it, make embeddings and then store in the vector db

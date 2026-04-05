@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getUserChat, saveMessage } from "@/services/db/chat";
+import { getUserChat, saveMessage, saveSummary } from "@/services/db/chat";
 import { Message } from "ai";
 import { summarizeDocument } from "@/actions/process-pdf";
 
@@ -22,9 +22,9 @@ export async function POST(req: NextRequest, res: NextResponse) {
         { status: 404 }
       );
     }
-
     const summary = await summarizeDocument(chat);
-
+    console.log("GREEN CHECK icon here means COMPLETED SUMMARIZATION 🚀");
+    await saveSummary({ chatId, summary });
     return Response.json(summary, {
       status: 200,
     });

@@ -160,3 +160,67 @@ export const getChatMessages = async (chatId: string) => {
     throw new Error("Failed to fetch chat messages");
   }
 };
+
+// save the summary of the chat by chatId
+interface ISummary {
+  chatId: string;
+  summary: {
+    introduction: string;
+    abstract: string;
+    keyTakeaways: string[];
+    tldr: string;
+  };
+}
+
+export const saveSummary = async ({ chatId, summary }: ISummary) => {
+  "use server";
+  console.log({ chatId, summary }, "SAVING 🚀");
+  try {
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+    });
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+    const updatedChat = await db.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        summary: {
+          create: {
+            introduction: summary.introduction,
+            abstract: summary.abstract,
+            keyTakeaways: summary.keyTakeaways,
+            tldr: summary.tldr,
+          },
+        },
+      },
+    });
+
+    return updatedChat.id;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to save chat summary");
+  }
+};
+// getChatSummary
+export const getChatSummary = async (chatId: string) => {
+  "use server";
+  try {
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+      include: {
+        summary: true,
+      },
+    });
+    return chat?.summary;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to fetch chat summary");
+  }
+};

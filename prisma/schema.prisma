@@ -38,7 +38,7 @@ model User {
 }
 
 model Chat {
-  id          String     @id @default(cuid())
+  id          String     @id @default(cuid()) @unique
   name        String     @unique
   pdfLink     String
   pdfStoragePath  String
@@ -48,6 +48,7 @@ model Chat {
   messages    Message[]
   user        User      @relation(fields: [userId], references: [id])
   userId      String
+  summary     Summary?
 }
 // {
 //     "id": "pmGFMnJ",
@@ -56,13 +57,27 @@ model Chat {
 //     "role": "assistant"
 // }
 model Message {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid()) @unique
   createdAt DateTime @default(now())
   content   String
   role      Role  @default(user)
   chat      Chat   @relation(fields: [chatId], references: [id])
   chatId    String
 }
+
+// create a model of the Summary, which is refeeer to the each, one summary belongs to one chat
+// introduction, abstract, tldr, keytakeaways as array of strings
+
+model Summary {
+  id            String   @id @default(cuid()) @unique
+  introduction  String
+  abstract      String
+  keyTakeaways  String[]
+  tldr          String
+  chat          Chat?    @relation(fields: [chatId], references: [id])
+  chatId        String  @unique
+}
+
 enum Role {
   user
   assistant
