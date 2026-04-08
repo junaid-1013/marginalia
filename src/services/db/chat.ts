@@ -4,6 +4,7 @@ import { cache } from "react";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Message } from "ai";
+import { ISummary } from "@/types";
 
 interface IProps {
   userId: string;
@@ -162,28 +163,29 @@ export const getChatMessages = async (chatId: string) => {
 };
 
 // save the summary of the chat by chatId
-interface ISummary {
+interface ISaveSummary {
   chatId: string;
-  summary: {
-    introduction: string;
-    abstract: string;
-    keyTakeaways: string[];
-    tldr: string;
-  };
+  summary: ISummary;
 }
-
-export const saveSummary = async ({ chatId, summary }: ISummary) => {
+export const saveSummary = async ({ chatId, summary }: ISaveSummary) => {
   "use server";
   console.log({ chatId, summary }, "SAVING 🚀");
+
+  if (!chatId || !summary) {
+    throw new Error("Invalid chatId or summary");
+  }
   try {
+    // Ensure that the chat exists before updating the summary
     const chat = await db.chat.findUnique({
       where: {
         id: chatId,
       },
     });
+
     if (!chat) {
       throw new Error("Chat not found");
     }
+
     const updatedChat = await db.chat.update({
       where: {
         id: chatId,
@@ -195,6 +197,15 @@ export const saveSummary = async ({ chatId, summary }: ISummary) => {
             abstract: summary.abstract,
             keyTakeaways: summary.keyTakeaways,
             tldr: summary.tldr,
+            mostUsedWords: {
+              createMany: {
+                skipDuplicates: true,
+                data: summary.mostUsedWords.map((word) => ({
+                  text: word.text,
+                  value: word.value,
+                })),
+              },
+            },
           },
         },
       },

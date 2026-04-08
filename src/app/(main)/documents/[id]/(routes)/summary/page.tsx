@@ -37,6 +37,7 @@ const DocumentSummaryPage = () => {
     queryKey: ["summary-associated-with-Chat", id],
     queryFn: getChatSummary,
   });
+  console.log("summary", summary);
 
   return (
     <>
@@ -86,7 +87,7 @@ const DocumentSummaryPage = () => {
                 <AccordionContent>
                   {/* this is the array of the stings so show them in the ul */}
                   <ul className="list-inside space-y-2">
-                    {summary.keyTakeaways.map((takeaway: string) => (
+                    {summary.keyTakeaways?.map((takeaway: string) => (
                       <li key={takeaway} className="flex">
                         <SparkleIcon className="w-4 h-4 text-accent mr-4 inline-block stroke-foreground/90 shrink-0" />
                         <span className="opacity-90 text-lg">{takeaway}</span>

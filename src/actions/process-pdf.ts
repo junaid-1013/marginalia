@@ -316,6 +316,19 @@ export const summarizeDocument = async (chat: Chat) => {
           "key takeaways from the document, describing each point, each point will be a string"
         ),
       tldr: z.string().describe("too long didn't read summary"),
+      //most ussed words count in the form of array of obejcts with word and count, but array lenght should not be more than 100
+      mostUsedWords: z
+        .array(
+          z.object({
+            text: z.string(),
+            value: z.number(),
+          })
+        )
+        .min(5)
+        .max(100)
+        .describe(
+          "most used words in the document, at least 2 counts for the repetition of the word"
+        ),
     })
   );
 

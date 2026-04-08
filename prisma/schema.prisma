@@ -38,18 +38,19 @@ model User {
 }
 
 model Chat {
-  id          String     @id @default(cuid()) @unique
-  name        String     @unique
-  pdfLink     String
-  pdfStoragePath  String
+  id             String    @id @default(cuid())
+  name           String    @unique
+  pdfLink        String
+  pdfStoragePath String
   collectionName String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  messages    Message[]
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  summary     Summary?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  messages       Message[]
+  user           User      @relation(fields: [userId], references: [id])
+  userId         String
+  summary        Summary?
 }
+
 // {
 //     "id": "pmGFMnJ",
 //     "createdAt": "2024-04-08T06:49:52.928Z",
@@ -57,11 +58,11 @@ model Chat {
 //     "role": "assistant"
 // }
 model Message {
-  id        String  @id @default(cuid()) @unique
+  id        String   @id @unique @default(cuid())
   createdAt DateTime @default(now())
   content   String
-  role      Role  @default(user)
-  chat      Chat   @relation(fields: [chatId], references: [id])
+  role      Role     @default(user)
+  chat      Chat     @relation(fields: [chatId], references: [id])
   chatId    String
 }
 
@@ -69,13 +70,23 @@ model Message {
 // introduction, abstract, tldr, keytakeaways as array of strings
 
 model Summary {
-  id            String   @id @default(cuid()) @unique
+  id            String   @id @unique @default(cuid())
   introduction  String
   abstract      String
   keyTakeaways  String[]
   tldr          String
+  mostUsedWords Word[]
+  // one to one relation with chat  
   chat          Chat?    @relation(fields: [chatId], references: [id])
-  chatId        String  @unique
+  chatId        String   @unique
+}
+
+model Word {
+  id        String  @id @unique @default(cuid())
+  text      String
+  value     Int
+  summary   Summary @relation(fields: [summaryId], references: [id])
+  summaryId String
 }
 
 enum Role {
