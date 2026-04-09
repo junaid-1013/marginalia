@@ -324,11 +324,9 @@ export const summarizeDocument = async (chat: Chat) => {
             value: z.number(),
           })
         )
-        .min(5)
+        .min(1)
         .max(100)
-        .describe(
-          "most used words in the document, at least 2 counts for the repetition of the word"
-        ),
+        .describe("most used words in the document, or add the relavent words"),
     })
   );
 

@@ -167,6 +167,7 @@ interface ISaveSummary {
   chatId: string;
   summary: ISummary;
 }
+// TODO: when createing again the Summary, the one to one, do problem with the chatId for the unique id, so solve that issue
 export const saveSummary = async ({ chatId, summary }: ISaveSummary) => {
   "use server";
   console.log({ chatId, summary }, "SAVING 🚀");
@@ -226,7 +227,11 @@ export const getChatSummary = async (chatId: string) => {
         id: chatId,
       },
       include: {
-        summary: true,
+        summary: {
+          include: {
+            mostUsedWords: true,
+          },
+        },
       },
     });
     return chat?.summary;

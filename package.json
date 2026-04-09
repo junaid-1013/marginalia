@@ -42,6 +42,7 @@
     "react-hook-form": "^7.51.1",
     "react-quizlet-flashcard": "^3.0.0",
     "react-resizable-panels": "^2.0.16",
+    "react-wordcloud": "^1.2.7",
     "react-wrap-balancer": "^1.1.0",
     "sonner": "^1.4.3",
     "tailwind-merge": "^2.1.0",

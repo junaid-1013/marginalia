@@ -19,6 +19,7 @@ import {
 import { summarize } from "@/apis";
 import { Button } from "@/components/ui/button";
 import { getChatSummary } from "@/apis/summary";
+import WordCloud from "@/components/word-cloud";
 
 const DocumentSummaryPage = () => {
   const { id } = useParams();
@@ -66,44 +67,51 @@ const DocumentSummaryPage = () => {
               <p className="text-lg text-muted-foreground">No summary found</p>
             </div>
           )}
+
           {summary && (
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Introduction</AccordionTrigger>
-                <AccordionContent>
-                  <Balancer className="text-lg">
-                    {summary.introduction}
-                  </Balancer>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-2">
-                <AccordionTrigger>Abstract</AccordionTrigger>
-                <AccordionContent>
-                  <Balancer className="text-lg">{summary.abstract}</Balancer>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-3">
-                <AccordionTrigger>Key Takeaways</AccordionTrigger>
-                <AccordionContent>
-                  {/* this is the array of the stings so show them in the ul */}
-                  <ul className="list-inside space-y-2">
-                    {summary.keyTakeaways?.map((takeaway: string) => (
-                      <li key={takeaway} className="flex">
-                        <SparkleIcon className="w-4 h-4 text-accent mr-4 inline-block stroke-foreground/90 shrink-0" />
-                        <span className="opacity-90 text-lg">{takeaway}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-4">
-                {/* tldr */}
-                <AccordionTrigger>TL;DR</AccordionTrigger>
-                <AccordionContent>
-                  <Balancer className="text-lg">{summary.tldr}</Balancer>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>Introduction</AccordionTrigger>
+                  <AccordionContent>
+                    <Balancer className="text-lg">
+                      {summary.introduction}
+                    </Balancer>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-2">
+                  <AccordionTrigger>Abstract</AccordionTrigger>
+                  <AccordionContent>
+                    <Balancer className="text-lg">{summary.abstract}</Balancer>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-3">
+                  <AccordionTrigger>Key Takeaways</AccordionTrigger>
+                  <AccordionContent>
+                    {/* this is the array of the stings so show them in the ul */}
+                    <ul className="list-inside space-y-2">
+                      {summary.keyTakeaways?.map((takeaway: string) => (
+                        <li key={takeaway} className="flex">
+                          <SparkleIcon className="w-4 h-4 text-accent mr-4 inline-block stroke-foreground/90 shrink-0" />
+                          <span className="opacity-90 text-lg">{takeaway}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-4">
+                  {/* tldr */}
+                  <AccordionTrigger>TL;DR</AccordionTrigger>
+                  <AccordionContent>
+                    <Balancer className="text-lg">{summary.tldr}</Balancer>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              <div className="mx-auto w-full flex flex-col justify-center items-center space-y-1">
+                <WordCloud words={summary.mostUsedWords} />
+                <p className="text-base text-primary/90">Word Count</p>
+              </div>
+            </>
           )}
         </div>
       </main>

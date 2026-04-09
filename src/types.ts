@@ -3,9 +3,9 @@ export interface ISummary {
   abstract: string;
   keyTakeaways: string[];
   tldr: string;
-  mostUsedWords: Word[];
+  mostUsedWords: IWord[];
 }
-export interface Word {
+export interface IWord {
   text: string;
   value: number;
 }
