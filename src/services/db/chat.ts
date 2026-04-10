@@ -4,7 +4,7 @@ import { cache } from "react";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Message } from "ai";
-import { ISummary } from "@/types";
+import { IFlashcard, ISummary } from "@/types";
 
 interface IProps {
   userId: string;
@@ -238,5 +238,53 @@ export const getChatSummary = async (chatId: string) => {
   } catch (e) {
     console.error(e);
     throw new Error("Failed to fetch chat summary");
+  }
+};
+
+export const saveFlashcards = async ({
+  chatId,
+  flashcards,
+}: {
+  chatId: string;
+  flashcards: IFlashcard[];
+}) => {
+  try {
+    console.log({ chatId, flashcards }, "from the db service 🚀");
+    if (!chatId || !flashcards) {
+      throw new Error("Invalid chatId or flashcards");
+    }
+    const updatedChat = await db.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        flashcards: {
+          createMany: {
+            data: flashcards.map((flashcard) => ({
+              question: flashcard.question,
+              answer: flashcard.answer,
+            })),
+          },
+        },
+      },
+    });
+    return updatedChat.id;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to save chat flashcards");
+  }
+};
+
+export const getChatFlashcards = async (chatId: string) => {
+  try {
+    const fcs = await db.flashcard.findMany({
+      where: {
+        chatId,
+      },
+    });
+    return fcs;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to fetch chat flashcards");
   }
 };

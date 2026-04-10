@@ -44,6 +44,7 @@ import { OPENAI_API_KEY, QDRANT } from "@/constants";
 import { db } from "@/lib/db";
 import { saveMessage } from "@/services/db/chat";
 import { Chat } from "@prisma/client";
+import { IFlashcard } from "@/types";
 // TODO: see some better ways
 
 let qdClient: QdrantClient | null = null;
@@ -244,7 +245,6 @@ export const ChatFromExistingCollection = async ({
   return stream;
 };
 
-// create stuff chain
 export const summarizeDocument = async (chat: Chat) => {
   const qdrantClient = getQDrantClient();
 
@@ -328,6 +328,191 @@ export const summarizeDocument = async (chat: Chat) => {
         .max(100)
         .describe("most used words in the document, or add the relavent words"),
     })
+  );
+
+  // Define the map chain to format, summarize, and parse the document
+  const mapChain = RunnableSequence.from([
+    { context: async (i: Document) => formatDocument(i, documentPrompt) },
+    summarizePrompt,
+    model,
+    outputParser,
+  ]);
+
+  // Define the collapse chain to format, collapse, and parse a list of documents
+  const collapseChain = RunnableSequence.from([
+    { context: async (documents: Document[]) => formatDocs(documents) },
+    collapsePrompt,
+    model,
+    outputParser,
+  ]);
+
+  // Define a function to collapse a list of documents until the total number of tokens is within the limit
+  const collapse = async (
+    documents: Document[],
+    options?: {
+      config?: BaseCallbackConfig;
+    },
+    tokenMax = 4000
+  ) => {
+    const editableConfig = options?.config;
+    let docs = documents;
+    let collapseCount = 1;
+    while ((await getNumTokens(docs)) > tokenMax) {
+      if (editableConfig) {
+        editableConfig.runName = `Collapse ${collapseCount}`;
+      }
+      const splitDocs = splitListOfDocs(docs, getNumTokens, tokenMax);
+      docs = await Promise.all(
+        splitDocs.map((doc) => collapseDocs(doc, collapseChain.invoke))
+      );
+      collapseCount += 1;
+    }
+    return docs;
+  };
+
+  // Define the reduce chain to format, combine, and parse a list of documents
+  const reduceChain = RunnableSequence.from([
+    {
+      context: formatDocs,
+      format_instructions: () => summmaryOutputSchema.getFormatInstructions(),
+    },
+    combinePrompt,
+    model,
+    summmaryOutputSchema,
+  ]).withConfig({ runName: "Reduce" });
+
+  // Define the final map-reduce chain
+  const mapReduceChain = RunnableSequence.from([
+    RunnableSequence.from([
+      {
+        doc: new RunnablePassthrough(),
+        content: mapChain,
+      },
+      (input) =>
+        new Document({
+          pageContent: input.content,
+          metadata: input.doc.metadata,
+        }),
+    ])
+      .withConfig({ runName: "Summarize (return doc)" })
+      .map(),
+    collapse,
+    reduceChain,
+  ]).withConfig({ runName: "Map reduce" });
+
+  // spliting the doc
+  const blob = await downloadPdf(chat.pdfStoragePath);
+  if (!blob) {
+    console.log(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
+    throw new Error(
+      "Failed to get the blob from the loadPdfIntoVectorStore function"
+    );
+  }
+  const loader = new WebPDFLoader(blob);
+  const doc = await loader.load();
+
+  // Split
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 100,
+  });
+  const chunks = await splitter.splitDocuments(doc);
+
+  const result = await mapReduceChain.invoke(chunks);
+
+  // Print the result
+  console.log(result);
+
+  return result;
+};
+
+export const createFlashcards = async (chat: Chat) => {
+  const qdrantClient = getQDrantClient();
+
+  const model = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo",
+    // temperature: 0.1,
+    // maxTokens: 512,
+    openAIApiKey: OPENAI_API_KEY,
+    // streaming: true,
+  });
+
+  // Define prompt templates for document formatting, summarizing, collapsing, and combining
+  const documentPrompt = PromptTemplate.fromTemplate("{pageContent}");
+  const summarizePrompt = PromptTemplate.fromTemplate(
+    "Imagine you're crafting flashcards to help students memorize key information effectively. Summarize the main points or interesting facts from this context:\n\n{context}"
+  );
+
+  const collapsePrompt = PromptTemplate.fromTemplate(
+    "Now, condense the summarized content into a concise format suitable for flashcards:\n\n{context}"
+  );
+
+  const combinePrompt = PromptTemplate.fromTemplate(
+    "You're preparing a comprehensive set of flashcards for student assessment. Integrate these condensed flashcards into an effective quiz format:\n\n{context} \n{format_instructions}"
+  );
+
+  // Wrap the `formatDocument` util so it can format a list of documents
+  const formatDocs = async (documents: Document[]): Promise<string> => {
+    const formattedDocs = await Promise.all(
+      documents.map((doc) => formatDocument(doc, documentPrompt))
+    );
+    return formattedDocs.join("\n\n");
+  };
+
+  // Define a function to get the number of tokens in a list of documents
+  const getNumTokens = async (documents: Document[]): Promise<number> =>
+    model.getNumTokens(await formatDocs(documents));
+
+  // Initialize the output parser
+  const outputParser = new StringOutputParser();
+
+  // parser with schema
+  // const summmaryOutputSchema = StructuredOutputParser.fromNamesAndDescriptions({
+  //   question: "Question or interesting knowledge of the flashcard",
+  //   answer:
+  //     "Answer to the question or knowledge, formatted with HTML tags such as underline and bold if needed.",
+  // });
+
+  // const summmaryOutputSchema = StructuredOutputParser.fromZodSchema(
+  //   z.object({
+  //     flashcards: z.array(
+  //       z.object({
+  //         question: z.string(),
+  //         answer: z.string(),
+  //       })
+  //     ),
+  //   })
+  // );
+  // const summmaryOutputSchema = StructuredOutputParser.fromZodSchema(
+  //   z.object({
+  //     flashcards: z.array(
+  //       z.object({
+  //         question: z.string(),
+  //         answer: z.string(),
+  //       })
+  //     ),
+  //   })
+  // );
+
+  const summmaryOutputSchema = StructuredOutputParser.fromZodSchema(
+    z.object({
+      flashcards: z.array(
+        z.object({
+          question: z
+            .string()
+            .describe("Question or knowledge of the flashcard"),
+          answer: z
+            .string()
+            .describe("Answer or value to the question or knowledge"),
+        })
+      ),
+      // .describe(
+      //   "Array of flashcards containing question and answer pairs."
+      // ),
+    })
+    // .describe("Schema for parsing summarized flashcard content.")
   );
 
   // Define the map chain to format, summarize, and parse the document

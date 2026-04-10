@@ -36,6 +36,7 @@ import { initChat, summarize } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { processDocument } from "@/apis/process-document";
 import { useEffect, useState } from "react";
+import { flashcardsAPI } from "@/apis/flashcards";
 
 const CreateForm = () => {
   const { data } = useSession();
@@ -49,9 +50,8 @@ const CreateForm = () => {
 
   // MUTATIONS
 
-  // 1. upload file to the bucket
-
-  const { mutate: generateSummary, isPending } = useMutation({
+  // some file operations needed when creation of chat
+  const { mutateAsync: generateSummary } = useMutation({
     mutationFn: summarize,
     onSuccess: (data) => {
       console.log("data", data);
@@ -60,7 +60,17 @@ const CreateForm = () => {
       console.error("error", error);
     },
   });
+  const { mutateAsync: generateFlashcards } = useMutation({
+    mutationFn: flashcardsAPI,
+    onSuccess: (data) => {
+      console.log("data", data);
+    },
+    onError: (error) => {
+      console.error("error", error);
+    },
+  });
 
+  // 1. upload file to the bucket
   const {
     mutateAsync: mutateUploadFile,
     isPending: uploadFileIsPending,
@@ -86,9 +96,10 @@ const CreateForm = () => {
     onError: (error) => {
       toast.error(`Failed to initialize chat`);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success("Chat created successfully");
-      generateSummary({ chatId: data.chat.id });
+      await generateSummary({ chatId: data.chat.id });
+      await generateFlashcards({ chatId: data.chat.id });
     },
   });
   // 3. get document, load and split it, make embeddings and then store in the vector db
