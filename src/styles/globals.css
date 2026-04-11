@@ -78,3 +78,33 @@
     @apply font-sans text-[14px] font-semibold  uppercase leading-[16px] tracking-[5%];
   }
 }
+
+/* Base theme */
+.bn-container[data-theming-css-variables-demo][data-color-scheme] {
+  --bn-colors-editor-text: var(--foreground);
+  --bn-colors-editor-background: var(--background);
+  /* --bn-colors-menu-text: var(--foreground);
+  --bn-colors-menu-background: var(--secondary);
+  --bn-colors-tooltip-text: var(--foreground);
+  --bn-colors-tooltip-background: var(--popover);
+  --bn-colors-hovered-text: var(--foreground);
+  --bn-colors-hovered-background: var(--secondary);
+  --bn-colors-selected-text: var(--primary-foreground);
+  --bn-colors-selected-background: var(--primary);
+  --bn-colors-disabled-text: var(--foreground);
+  --bn-colors-disabled-background: var(--muted);
+  --bn-colors-shadow: var(--border);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--muted);
+  --bn-colors-highlight-colors: var(--foreground);
+  --bn-border-radius: var(--radius);
+  --bn-font-family: "Inter", sans-serif; Assuming 'Inter' is your primary font */
+}
+
+/* Changes for dark mode */
+.bn-container[data-theming-css-variables-demo][data-color-scheme="dark"] {
+  --bn-colors-editor-text: var(--foreground);
+  --bn-colors-editor-background: var(--background);
+  /* --bn-colors-side-menu: var(--background); */
+  /* Adjust dark mode variables as needed */
+}

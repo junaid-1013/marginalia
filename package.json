@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^1.5.0",
+    "@blocknote/core": "^0.12.4",
+    "@blocknote/react": "^0.12.4",
     "@hookform/resolvers": "^3.3.4",
     "@langchain/community": "^0.0.43",
     "@langchain/openai": "^0.0.25",
