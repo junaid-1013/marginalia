@@ -20,6 +20,7 @@ import { summarize } from "@/apis";
 import { Button } from "@/components/ui/button";
 import { getChatSummary } from "@/apis/summary";
 import WordCloud from "@/components/word-cloud";
+import { Separator } from "@/components/ui/separator";
 
 const DocumentSummaryPage = () => {
   const { id } = useParams();
@@ -43,22 +44,25 @@ const DocumentSummaryPage = () => {
   return (
     <>
       <main className="container py-4">
-        <div className="flex justify-between pt-6">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Summary
-          </h2>
-          {/* if summary not available, so generate */}
-          {!summary && (
-            <Button
-              onClick={() => mutate({ chatId: id as string })}
-              disabled={isPending}
-            >
-              {isPending && (
-                <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
-              )}
-              Summarize
-            </Button>
-          )}
+        <div className="sticky top-0 left-0 bg-background/80 backdrop-blur-sm z-20">
+          <div className="flex justify-between py-6">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              Summary
+            </h2>
+            {/* if summary not available, so generate */}
+            {!summary && (
+              <Button
+                onClick={() => mutate({ chatId: id as string })}
+                disabled={isPending}
+              >
+                {isPending && (
+                  <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
+                )}
+                Summarize
+              </Button>
+            )}
+          </div>
+          <Separator />
         </div>
         <div className="flex flex-wrap gap-5 my-10 relative">
           {!summary && (
@@ -70,6 +74,10 @@ const DocumentSummaryPage = () => {
 
           {summary && (
             <>
+              <div className="mx-auto w-full flex flex-col justify-center items-center space-y-1">
+                <WordCloud words={summary.mostUsedWords} />
+                <p className="text-xs text-primary/80">Words Count</p>
+              </div>
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
                   <AccordionTrigger>Introduction</AccordionTrigger>
@@ -107,10 +115,6 @@ const DocumentSummaryPage = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-              <div className="mx-auto w-full flex flex-col justify-center items-center space-y-1">
-                <WordCloud words={summary.mostUsedWords} />
-                <p className="text-base text-primary/90">Word Count</p>
-              </div>
             </>
           )}
         </div>

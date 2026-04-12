@@ -12,7 +12,7 @@ interface IProps {
 const WordCloud: React.FC<IProps> = ({ words }) => {
   console.log("words", words);
   return (
-    <div className="aspect-video max-w-lg w-full mx-auto bg-accent flex flex-col">
+    <div className="aspect-video max-w-lg w-full mx-auto">
       <ReactWordcloud words={words} />
     </div>
   );

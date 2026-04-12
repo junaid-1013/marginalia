@@ -53,7 +53,7 @@ const ChatCard = ({ chat }: Props) => {
   });
   console.log("listMessages", listMessages);
   return (
-    <Card className="h-full relative flex flex-col border-none">
+    <Card className="h-full relative flex flex-col border-none pt-6">
       <CardContent className="flex-1 h-full overflow-y-auto">
         <div className="space-y-4">
           {messages &&
