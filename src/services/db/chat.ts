@@ -288,3 +288,45 @@ export const getChatFlashcards = async (chatId: string) => {
     throw new Error("Failed to fetch chat flashcards");
   }
 };
+
+export const saveChatNote = async ({
+  chatId,
+  note,
+}: {
+  chatId: string;
+  note: string;
+}) => {
+  try {
+    if (!chatId || !note) {
+      throw new Error("Invalid chatId or note");
+    }
+    const updatedChat = await db.chat.update({
+      where: {
+        id: chatId,
+      },
+      data: {
+        note,
+      },
+    });
+    return updatedChat.note;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to save chat note");
+  }
+};
+export const getChatNote = async (chatId: string) => {
+  try {
+    const chat = await db.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+    });
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+    return chat?.note;
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to fetch chat note");
+  }
+};

@@ -1,19 +1,44 @@
 "use client";
 
+import { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
-import { Block } from "@blocknote/core";
-import { BlockNoteView, useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/react";
 import "@blocknote/react/style.css";
+import { useEffect, useMemo, useState } from "react";
 
 interface IEditorProps {
   onChange?: (blocks: Block[]) => void;
-  initialContent?: Block[];
+  initialContentt?: Block[];
+  onSave?: () => void;
+  loadBlock: () => Promise<PartialBlock[] | undefined>;
 }
-const Editor: React.FC<IEditorProps> = ({ initialContent, onChange }) => {
-  const editor = useCreateBlockNote({
-    initialContent,
-  });
+const Editor: React.FC<IEditorProps> = ({
+  initialContentt,
+  onChange,
+  loadBlock,
+}) => {
+  const [initialContent, setInitialContent] = useState<
+    PartialBlock[] | undefined | "loading"
+  >(initialContentt || "loading");
 
+  useEffect(() => {
+    loadBlock().then((content) => {
+      setInitialContent(content);
+    });
+  }, []);
+
+  const editor = useMemo(() => {
+    if (initialContent === "loading") {
+      return undefined;
+    }
+    return BlockNoteEditor.create({ initialContent });
+  }, [initialContent]);
+
+  if (editor === undefined) {
+    return "Loading note...";
+  }
+
+  // Renders the editor instance.
   return (
     <BlockNoteView
       editor={editor}

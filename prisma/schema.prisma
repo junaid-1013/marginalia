@@ -50,6 +50,7 @@ model Chat {
   userId         String
   summary        Summary?
   flashcards     Flashcard[]
+  note           String?
 }
 
 model Flashcard {
