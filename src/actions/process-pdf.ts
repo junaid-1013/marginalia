@@ -301,21 +301,25 @@ export const summarizeDocument = async (chat: Chat) => {
       introduction: z
         .string()
         .describe(
-          "introduction to the document, providing the reason for the document"
+          "Imagine you're providing an introduction to a document. Write a brief introduction that outlines the purpose and context of the document"
         ),
       abstract: z
         .string()
         .describe(
-          "abstract of the document, in the format of the formal abstract of a paper"
+          "Craft a formal abstract for the document. Summarize the key points and main arguments in a concise format"
         ),
       // keyTakeaways: z.string().describe("key takeaways from the document"),
       // key takeaways will be a description, in bullet points, it it will be list of strings
       keyTakeaways: z
         .array(z.string())
         .describe(
-          "key takeaways from the document, describing each point, each point will be a string"
+          "List the key takeaways from the document. Provide a brief description for each point to highlight the main insights"
         ),
-      tldr: z.string().describe("too long didn't read summary"),
+      tldr: z
+        .string()
+        .describe(
+          "Create a TLDR summary for the document. Capture the essence of the content in a short and easily digestible format"
+        ),
       //most ussed words count in the form of array of obejcts with word and count, but array lenght should not be more than 100
       mostUsedWords: z
         .array(
@@ -326,7 +330,9 @@ export const summarizeDocument = async (chat: Chat) => {
         )
         .min(1)
         .max(100)
-        .describe("most used words in the document, or add the relavent words"),
+        .describe(
+          "Select the most important words from the document for a word cloud. List them with their relevance or importance."
+        ),
     })
   );
 
