@@ -67,7 +67,7 @@ export const getUserChats = cache(async (userId: string) => {
     // console.log({ chats });
     return chats;
   } catch (e) {
-    console.log(e);
+    // console.log(e);
     return null;
   }
 });
@@ -82,7 +82,7 @@ export const getUserChat = cache(async (chatId: string) => {
     });
     return chat;
   } catch (e) {
-    console.log(e);
+    // console.log(e);
     return null;
   }
 });
@@ -111,7 +111,7 @@ export const saveMessage = async ({
 }) => {
   "use server";
   try {
-    console.log({ chatId, message }, "lastly fromm the db service🚀");
+    // console.log({ chatId, message }, "lastly fromm the db service🚀");
     const chat = await db.chat.findUnique({
       where: {
         id: chatId,
@@ -170,7 +170,7 @@ interface ISaveSummary {
 // TODO: when createing again the Summary, the one to one, do problem with the chatId for the unique id, so solve that issue
 export const saveSummary = async ({ chatId, summary }: ISaveSummary) => {
   "use server";
-  console.log({ chatId, summary }, "SAVING 🚀");
+  // console.log({ chatId, summary }, "SAVING 🚀");
 
   if (!chatId || !summary) {
     throw new Error("Invalid chatId or summary");
@@ -249,7 +249,7 @@ export const saveFlashcards = async ({
   flashcards: IFlashcard[];
 }) => {
   try {
-    console.log({ chatId, flashcards }, "from the db service 🚀");
+    // console.log({ chatId, flashcards }, "from the db service 🚀");
     if (!chatId || !flashcards) {
       throw new Error("Invalid chatId or flashcards");
     }

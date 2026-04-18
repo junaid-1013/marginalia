@@ -11,11 +11,11 @@ export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
   const { chatId } = payload;
-  console.log({ chatId }, "from NEW route START emoji here  🚀");
+  // console.log({ chatId }, "from NEW route START emoji here  🚀");
 
   try {
     const chat = await getUserChat(chatId);
-    console.log({ chat }, "from NEW route");
+    // console.log({ chat }, "from NEW route");
     if (!chat) {
       return Response.json(
         { error: "Chat not found while going to summarize" },
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       );
     }
     const summary = await summarizeDocument(chat);
-    console.log("GREEN CHECK icon here means COMPLETED SUMMARIZATION 🚀");
+    // console.log("GREEN CHECK icon here means COMPLETED SUMMARIZATION 🚀");
     await saveSummary({ chatId, summary });
     return Response.json(summary, {
       status: 200,

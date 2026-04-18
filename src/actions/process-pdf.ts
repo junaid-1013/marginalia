@@ -90,9 +90,9 @@ export const loadPdfIntoVectorStore = async ({
   // Load docs
   const blob = await downloadPdf(pdfStoragePath);
   if (!blob) {
-    console.log(
-      "Failed to get the blob from the loadPdfIntoVectorStore function"
-    );
+    // console.log(
+    //   "Failed to get the blob from the loadPdfIntoVectorStore function"
+    // );
     throw new Error(
       "Failed to get the blob from the loadPdfIntoVectorStore function"
     );
@@ -409,9 +409,9 @@ export const summarizeDocument = async (chat: Chat) => {
   // spliting the doc
   const blob = await downloadPdf(chat.pdfStoragePath);
   if (!blob) {
-    console.log(
-      "Failed to get the blob from the loadPdfIntoVectorStore function"
-    );
+    // console.log(
+    //   "Failed to get the blob from the loadPdfIntoVectorStore function"
+    // );
     throw new Error(
       "Failed to get the blob from the loadPdfIntoVectorStore function"
     );
@@ -429,7 +429,7 @@ export const summarizeDocument = async (chat: Chat) => {
   const result = await mapReduceChain.invoke(chunks);
 
   // Print the result
-  console.log(result);
+  // console.log(result);
 
   return result;
 };
@@ -594,9 +594,9 @@ export const createFlashcards = async (chat: Chat) => {
   // spliting the doc
   const blob = await downloadPdf(chat.pdfStoragePath);
   if (!blob) {
-    console.log(
-      "Failed to get the blob from the loadPdfIntoVectorStore function"
-    );
+    // console.log(
+    //   "Failed to get the blob from the loadPdfIntoVectorStore function"
+    // );
     throw new Error(
       "Failed to get the blob from the loadPdfIntoVectorStore function"
     );
@@ -614,7 +614,7 @@ export const createFlashcards = async (chat: Chat) => {
   const result = await mapReduceChain.invoke(chunks);
 
   // Print the result
-  console.log(result);
+  // console.log(result);
 
   return result;
 };

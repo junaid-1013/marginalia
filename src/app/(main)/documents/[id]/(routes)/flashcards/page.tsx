@@ -14,7 +14,7 @@ const DocumentFlashcardsPage = () => {
   const { mutate, data, isPending } = useMutation({
     mutationFn: flashcardsAPI,
     onSuccess: (data) => {
-      console.log("data", data);
+      // console.log("data", data);
     },
     onError: (error) => {
       console.error("error", error);
@@ -25,7 +25,7 @@ const DocumentFlashcardsPage = () => {
     queryKey: ["flashcards-associated-with-Chat", id],
     queryFn: getChatFlashCards,
   });
-  console.log({ flashcardsData });
+  // console.log({ flashcardsData });
   return (
     <>
       <main className="container py-4">

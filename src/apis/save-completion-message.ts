@@ -11,7 +11,7 @@ export const saveCompletionMessage = async (payload: IPayload) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    console.log({ payload }, "water emoji here 🌊");
+    // console.log({ payload }, "water emoji here 🌊");
     if (!response.ok) {
       throw new Error("Failed to Save Chat Messages");
     }

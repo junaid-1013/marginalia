@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
   const { collectionName, messages, chatId } = payload;
-  console.log({ collectionName, messages, chatId }, "Firsst Route 🌚");
+  // console.log({ collectionName, messages, chatId }, "Firsst Route 🌚");
 
   try {
     const response = await ChatFromExistingCollection({

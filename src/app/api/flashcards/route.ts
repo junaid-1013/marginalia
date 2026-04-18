@@ -17,11 +17,11 @@ export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
   const { chatId } = payload;
-  console.log({ chatId }, "from NEW route START emoji here  🚀");
+  // console.log({ chatId }, "from NEW route START emoji here  🚀");
 
   try {
     const chat = await getUserChat(chatId);
-    console.log({ chat }, "from NEW route");
+    // console.log({ chat }, "from NEW route");
     if (!chat) {
       return Response.json(
         { error: "Chat not found while going to summarize" },
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       );
     }
     const { flashcards } = await createFlashcards(chat);
-    console.log("GREEN CHECK icon here means COMPLETED FLASHCARD 🚀");
+    // console.log("GREEN CHECK icon here means COMPLETED FLASHCARD 🚀");
     await saveFlashcards({ chatId, flashcards });
     return Response.json(flashcards, {
       status: 200,
@@ -51,10 +51,10 @@ export async function GET(req: NextRequest, res: NextResponse) {
 
   try {
     const flashcards = await getChatFlashcards(chatId);
-    console.log("GREEN CHECK icon here means GETTING FLASHCARD 🚀", {
-      flashcards,
-      chatId,
-    });
+    // console.log("GREEN CHECK icon here means GETTING FLASHCARD 🚀", {
+    //   flashcards,
+    //   chatId,
+    // });
 
     return Response.json(flashcards, {
       status: 200,

@@ -28,7 +28,7 @@ const DocumentSummaryPage = () => {
   const { mutate, data, isPending } = useMutation({
     mutationFn: summarize,
     onSuccess: (data) => {
-      console.log("data", data);
+      // console.log("data", data);
     },
     onError: (error) => {
       console.error("error", error);
@@ -39,7 +39,7 @@ const DocumentSummaryPage = () => {
     queryKey: ["summary-associated-with-Chat", id],
     queryFn: getChatSummary,
   });
-  console.log("summary", summary);
+  // console.log("summary", summary);
 
   return (
     <>

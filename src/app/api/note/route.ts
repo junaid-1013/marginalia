@@ -24,10 +24,10 @@ export async function POST(req: NextRequest, res: NextResponse) {
 
 export async function GET(req: NextRequest, res: NextResponse) {
   const url = new URL(req.url);
-  console.log({ url }, "from note route with rocket icon here ");
+  // console.log({ url }, "from note route with rocket icon here ");
   const searchParams = url.searchParams;
   const chatId = searchParams.get("chatId");
-  console.log(chatId, "from note route with rocket icon here ");
+  // console.log(chatId, "from note route with rocket icon here ");
 
   try {
     if (!chatId) {

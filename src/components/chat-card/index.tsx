@@ -26,7 +26,7 @@ const ChatCard = ({ chat }: Props) => {
   const { mutateAsync: saveMessage } = useMutation({
     mutationFn: saveCompletionMessage,
     onSuccess: () => {
-      console.log("Chat saved");
+      // console.log("Chat saved");
     },
     onError: (e) => {
       console.error("Failed to save chat messages", e);
@@ -51,7 +51,7 @@ const ChatCard = ({ chat }: Props) => {
       }
     },
   });
-  console.log("listMessages", listMessages);
+  // console.log("listMessages", listMessages);
   return (
     <Card className="h-full relative flex flex-col border-none pt-6">
       <CardContent className="flex-1 h-full overflow-y-auto">

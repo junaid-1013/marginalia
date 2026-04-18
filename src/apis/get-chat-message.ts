@@ -10,14 +10,14 @@ export const getChatMessages = async (payload: IPayload) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    console.log({ payload }, "water emoji here 🌊");
+    // console.log({ payload }, "water emoji here 🌊");
     if (!response.ok) {
       throw new Error("Failed to Get Messages");
     }
     const messages = (await response.json()) as Message[];
     return messages;
   } catch (e) {
-    console.error("Error saving chat messages:", { e });
+    // console.error("Error saving chat messages:", { e });
     throw new Error("Failed to Save Chat Messages");
   }
 };

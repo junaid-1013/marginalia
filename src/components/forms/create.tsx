@@ -54,7 +54,7 @@ const CreateForm = () => {
   const { mutateAsync: generateSummary } = useMutation({
     mutationFn: summarize,
     onSuccess: (data) => {
-      console.log("data", data);
+      // console.log("data", data);
     },
     onError: (error) => {
       console.error("error", error);
@@ -63,7 +63,7 @@ const CreateForm = () => {
   const { mutateAsync: generateFlashcards } = useMutation({
     mutationFn: flashcardsAPI,
     onSuccess: (data) => {
-      console.log("data", data);
+      // console.log("data", data);
     },
     onError: (error) => {
       console.error("error", error);
