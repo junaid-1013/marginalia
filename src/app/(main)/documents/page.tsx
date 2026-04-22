@@ -1,17 +1,12 @@
 import Link from "next/link";
-import {
-  InboxIcon as EmptyBoxIcon,
-  PlusCircleIcon,
-  PlusIcon,
-} from "lucide-react";
+import { InboxIcon as EmptyBoxIcon, PlusCircleIcon } from "lucide-react";
+import { Chat } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { getUserChats } from "@/services/db/chat";
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,20 +15,13 @@ import { buttonVariants } from "@/components/ui/button";
 
 const ChatsPage = async () => {
   const session = await auth();
-  let chats:
-    | {
-        id: string;
-        name: string;
-        pdfLink: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-      }[]
-    | null = [];
+  let chats: Chat[] | null = [];
+
   if (session?.user?.id) {
     chats = await getUserChats(session.user.id);
   }
-
+  console.log("📣 chats | 📃");
+  console.log("🚀 chats | 📃", { chats });
   return (
     <>
       <main className="container py-4">

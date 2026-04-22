@@ -64,10 +64,10 @@ export const getUserChats = cache(async (userId: string) => {
         userId,
       },
     });
-    // console.log({ chats });
+    console.log("🚀 ~ getUserChats ~ chats:", chats);
     return chats;
   } catch (e) {
-    // console.log(e);
+    console.log("🚨 ~ getUserChats ~ e:", e);
     return null;
   }
 });
