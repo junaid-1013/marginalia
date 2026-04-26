@@ -3,7 +3,7 @@ interface IPayload {
   collectionName: string;
 }
 
-export const processDocument = async (payload: IPayload) => {
+export const processDocumentAPI = async (payload: IPayload) => {
   try {
     const response = await fetch("/api/process-document", {
       method: "POST",
@@ -12,8 +12,8 @@ export const processDocument = async (payload: IPayload) => {
     if (!response.ok) {
       throw new Error("Failed to process document");
     }
-    const chat = await response.json();
-    return chat;
+    const collection = await response.json();
+    return collection;
   } catch (e) {
     console.error("Error processing document:", { e });
     throw new Error("Failed to process document");

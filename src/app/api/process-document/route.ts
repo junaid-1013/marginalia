@@ -8,17 +8,18 @@ interface IBody {
 }
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
+  console.log("🚀 ~ POST ~ process-document ~ payload:", payload);
 
   const { collectionName, pdfStoragePath } = payload;
 
   try {
-    const doc = await loadPdfIntoVectorStore({
+    const collection = await loadPdfIntoVectorStore({
       pdfStoragePath,
       collectionName,
     });
 
     return Response.json(
-      { doc },
+      { collection },
       {
         status: 201,
       }

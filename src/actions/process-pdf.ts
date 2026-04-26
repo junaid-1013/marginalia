@@ -90,9 +90,6 @@ export const loadPdfIntoVectorStore = async ({
   // Load docs
   const blob = await downloadPdf(pdfStoragePath);
   if (!blob) {
-    // console.log(
-    //   "Failed to get the blob from the loadPdfIntoVectorStore function"
-    // );
     throw new Error(
       "Failed to get the blob from the loadPdfIntoVectorStore function"
     );
@@ -126,15 +123,6 @@ export const loadPdfIntoVectorStore = async ({
   const collection = qdrantClient.getCollection(collectionName);
   vectorStore.addDocuments(chunks);
   return collection;
-  // Initialize a retriever wrapper around the vector store
-  // const retriever = vectorStore.asRetriever();
-  // const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");
-  // const llm = new ChatOpenAI({ modelName: "gpt-3.5-turbo", temperature: 0 });
-  // const ragChain = await createStuffDocumentsChain({
-  //   llm,
-  //   prompt,
-  //   outputParser: new StringOutputParser(),
-  // });
 };
 
 interface IChatFromExistingCollectionProps {

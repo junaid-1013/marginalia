@@ -7,8 +7,7 @@ interface IPayload {
   userId: string;
 }
 
-export const initChat = async (chatConfig: IPayload) => {
-  // console.log("api -- input from init-chat", chatConfig);
+export const initChatAPI = async (chatConfig: IPayload) => {
   try {
     const response = await fetch("/api/init-chat", {
       method: "POST",
@@ -16,10 +15,8 @@ export const initChat = async (chatConfig: IPayload) => {
     });
     if (!response.ok) throw new Error("Failed to initialize chat");
     const chat: { chat: Chat } = await response.json();
-    // console.log("api -- output from init-chat", chat);
     return chat;
   } catch (e) {
-    console.warn({ e }, "from init-chat.ts");
     throw new Error("Failed to initialize chat");
   }
 };

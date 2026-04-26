@@ -11,6 +11,8 @@ interface IBody {
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
 
+  console.log("🚀 ~ POST ~ init-chat ~ payload:", payload);
+
   const { name, pdfLink, userId, pdfStoragePath } = payload;
   try {
     const chat = await initializeChat({
@@ -20,6 +22,8 @@ export async function POST(req: NextRequest, res: NextResponse) {
       pdfStoragePath,
     });
 
+    console.log("🚀 ~ POST ~ init-chat ~ chat:", chat);
+
     return Response.json(
       { chat },
       {
@@ -27,7 +31,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
       }
     );
   } catch (e: any) {
-    console.error("error from thte route junaid", e);
+    console.log("🚨 ~ POST ~ init-chat ~ e:", e);
     return Response.json({ error: e?.message as string }, { status: 500 });
   }
 }

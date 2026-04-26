@@ -3,7 +3,10 @@ import { FileWithPath } from "react-dropzone";
 import { firebaseStorage } from "@/lib/firebase";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 
-export const uploadFile = async (file: FileWithPath): Promise<string> => {
+export const uploadFileFirebase = async (
+  file: FileWithPath
+): Promise<string> => {
+  console.log("🚀 ~ uploadFileFirebase ~ file:", file);
   const metadata = {
     contentType: file.type,
   };
@@ -36,10 +39,15 @@ export const uploadFile = async (file: FileWithPath): Promise<string> => {
         getDownloadURL(uploadTask.snapshot.ref)
           .then((downloadURL) => {
             // Resolve the promise with the download URL
+            console.log(
+              "🚀 ~ service ~ uploadFileFirebase ~ downloadURL:",
+              downloadURL
+            );
             resolve(downloadURL);
           })
           .catch((error) => {
             // Handle errors while getting download URL
+            console.log("🚨 ~ service ~ uploadFileFirebase ~ error:", error);
             reject(error);
           });
       }

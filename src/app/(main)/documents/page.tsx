@@ -20,8 +20,8 @@ const ChatsPage = async () => {
   if (session?.user?.id) {
     chats = await getUserChats(session.user.id);
   }
-  console.log("📣 chats | 📃");
-  console.log("🚀 chats | 📃", { chats });
+  console.log("🚀 ~ ChatsPage ~ chats:", chats);
+
   return (
     <>
       <main className="container py-4">

@@ -5,20 +5,20 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FileWithPath, useDropzone } from "react-dropzone";
+import { Chat } from "@prisma/client";
 
 import {
-  BookTypeIcon,
   FileIcon,
   LoaderIcon,
-  MapIcon,
   CrossIcon,
   SmileIcon,
   UploadCloudIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-
 import { CreateFormSchema } from "@/schemas/form/create";
 import {
   Form,
@@ -30,17 +30,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { uploadFile } from "@/services/upload-file";
-import { useMutation } from "@tanstack/react-query";
-import { initChat, summarize } from "@/apis";
+import { uploadFileFirebase } from "@/services/upload-file";
+import { initChatAPI, summarize } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { processDocument } from "@/apis/process-document";
-import { useEffect, useState } from "react";
+import { processDocumentAPI } from "@/apis/process-document";
 import { flashcardsAPI } from "@/apis/flashcards";
 
 const CreateForm = () => {
   const { data } = useSession();
   const router = useRouter();
+  // save the chat in local variable
+  let chat: Chat;
 
   const [stateOfAlert, setStateOfAlert] = useState({
     variant: "default",
@@ -50,24 +50,16 @@ const CreateForm = () => {
 
   // MUTATIONS
 
-  // some file operations needed when creation of chat
+  // some FILE operations NEEDED when creation of chat ~ onSuccess of processDocumentAPI
   const { mutateAsync: generateSummary } = useMutation({
     mutationFn: summarize,
-    onSuccess: (data) => {
-      // console.log("data", data);
-    },
-    onError: (error) => {
-      console.error("error", error);
-    },
+    onSuccess: (data) => {},
+    onError: (error) => {},
   });
   const { mutateAsync: generateFlashcards } = useMutation({
     mutationFn: flashcardsAPI,
-    onSuccess: (data) => {
-      // console.log("data", data);
-    },
-    onError: (error) => {
-      console.error("error", error);
-    },
+    onSuccess: (data) => {},
+    onError: (error) => {},
   });
 
   // 1. upload file to the bucket
@@ -76,7 +68,7 @@ const CreateForm = () => {
     isPending: uploadFileIsPending,
     isError: uploadFileIsError,
   } = useMutation({
-    mutationFn: uploadFile,
+    mutationFn: uploadFileFirebase,
 
     onError: (error) => {
       toast.error("Failed to upload file");
@@ -91,15 +83,15 @@ const CreateForm = () => {
     isPending: initChatIsPending,
     isError: initChatIsError,
   } = useMutation({
-    mutationFn: initChat,
+    mutationFn: initChatAPI,
 
     onError: (error) => {
       toast.error(`Failed to initialize chat`);
     },
     onSuccess: async (data) => {
       toast.success("Chat created successfully");
-      await generateSummary({ chatId: data.chat.id });
-      await generateFlashcards({ chatId: data.chat.id });
+      // save the chat in the ref
+      chat = data.chat;
     },
   });
   // 3. get document, load and split it, make embeddings and then store in the vector db
@@ -108,12 +100,19 @@ const CreateForm = () => {
     isPending: processDocumentIsPending,
     isError: processDocumentIsError,
   } = useMutation({
-    mutationFn: processDocument,
+    mutationFn: processDocumentAPI,
     onError: (error) => {
       toast.error("Failed to process document");
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // data is the collection
       toast.success("Document processed successfully");
+      console.log(
+        "🚀 ~  ~ onSuccess of process-document mutation ~ chat:",
+        chat
+      );
+      await generateSummary({ chatId: chat.id });
+      await generateFlashcards({ chatId: chat.id });
     },
   });
   //
