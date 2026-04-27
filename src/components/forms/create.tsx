@@ -39,8 +39,8 @@ import { flashcardsAPI } from "@/apis/flashcards";
 const CreateForm = () => {
   const { data } = useSession();
   const router = useRouter();
+  const [chatId, setChatId] = useState<string>("");
   // save the chat in local variable
-  let chat: Chat;
 
   const [stateOfAlert, setStateOfAlert] = useState({
     variant: "default",
@@ -91,7 +91,7 @@ const CreateForm = () => {
     onSuccess: async (data) => {
       toast.success("Chat created successfully");
       // save the chat in the ref
-      chat = data.chat;
+      setChatId(data.chat.id);
     },
   });
   // 3. get document, load and split it, make embeddings and then store in the vector db
@@ -107,12 +107,13 @@ const CreateForm = () => {
     onSuccess: async (data) => {
       // data is the collection
       toast.success("Document processed successfully");
+      router.push(`/documents/${chatId}/view`);
       console.log(
-        "🚀 ~  ~ onSuccess of process-document mutation ~ chat:",
-        chat
+        "🚀 ~  ~ onSuccess of process-document mutation ~ chatId:",
+        chatId
       );
-      await generateSummary({ chatId: chat.id });
-      await generateFlashcards({ chatId: chat.id });
+      await generateSummary({ chatId });
+      await generateFlashcards({ chatId });
     },
   });
   //
@@ -154,8 +155,7 @@ const CreateForm = () => {
       collectionName: initializedChat.chat.collectionName,
     });
 
-    if (!initializedChat.chat.id) return;
-    router.push(`/documents/${initializedChat.chat.id}/view`);
+    // if (!initializedChat.chat.id) return;
   }
 
   useEffect(() => {
