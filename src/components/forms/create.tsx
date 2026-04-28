@@ -288,7 +288,10 @@ const CreateForm = () => {
             disabled={
               uploadFileIsPending ||
               initChatIsPending ||
-              processDocumentIsPending
+              processDocumentIsPending || // if there is erorrs of the form validation state use hook form
+              // if there is no file in form
+              !form.getValues("pdfFile") ||
+              !form.getValues("title")
             }
           >
             {uploadFileIsPending ||
