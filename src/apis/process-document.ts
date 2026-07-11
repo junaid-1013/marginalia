@@ -1,5 +1,5 @@
 interface IPayload {
-  pdfStoragePath: string;
+  pdfLink: string;
   collectionName: string;
 }
 

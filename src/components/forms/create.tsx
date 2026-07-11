@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { uploadFileFirebase } from "@/services/upload-file";
+import { uploadFile } from "@/services/upload-file";
 import { initChatAPI, summarize } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { processDocumentAPI } from "@/apis/process-document";
@@ -68,7 +68,7 @@ const CreateForm = () => {
     isPending: uploadFileIsPending,
     isError: uploadFileIsError,
   } = useMutation({
-    mutationFn: uploadFileFirebase,
+    mutationFn: uploadFile,
 
     onError: (error) => {
       toast.error("Failed to upload file");
@@ -138,20 +138,24 @@ const CreateForm = () => {
   // METHODS
 
   async function onSubmit(values: z.infer<typeof CreateFormSchema>) {
-    const pdfLink = await mutateUploadFile(values.pdfFile[0]);
+    const userId = data?.user?.id as string;
+    const uploaded = await mutateUploadFile({
+      file: values.pdfFile[0],
+      userId,
+    });
 
     const chatConfig = {
       name: values.title,
-      pdfStoragePath: `uploads/${values.pdfFile[0].name}`,
-      pdfLink: pdfLink,
-      userId: data?.user?.id as string,
+      pdfStoragePath: uploaded.pathname,
+      pdfLink: uploaded.url,
+      userId,
     };
     const initializedChat = await mutateInitChat(chatConfig);
 
     if (!initializedChat || !initializedChat.chat) return;
 
     const doc = await mutateProcessDocument({
-      pdfStoragePath: initializedChat.chat.pdfStoragePath,
+      pdfLink: initializedChat.chat.pdfLink,
       collectionName: initializedChat.chat.collectionName,
     });
 

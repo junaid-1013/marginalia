@@ -37,9 +37,6 @@ import {
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 
-import { firebaseStorage } from "@/lib/firebase";
-import { getDownloadURL } from "@firebase/storage";
-import { ref } from "firebase/storage";
 import { OPENAI_API_KEY, QDRANT } from "@/constants";
 import { db } from "@/lib/db";
 import { saveMessage } from "@/services/db/chat";
@@ -60,35 +57,29 @@ export const getQDrantClient = () => {
 };
 
 // METHODS
-export const downloadPdf = async (path: string) => {
+export const downloadPdf = async (pdfLink: string) => {
   try {
-    // Get the download URL for the file
-    const fromReference = ref(firebaseStorage, path);
-    const url = await getDownloadURL(ref(fromReference));
-
-    // Fetch the file as Blob
-    const response = await fetch(url);
-    const blob = await response.blob();
-
-    // Return the Blob
-    return blob;
+    const response = await fetch(pdfLink);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status}`);
+    }
+    return await response.blob();
   } catch (error) {
-    // Handle any errors
     console.error("Error downloading PDF:", error);
     return null;
   }
 };
 
 interface ILoadPdfIntoVectorStoreProps {
-  pdfStoragePath: string;
+  pdfLink: string;
   collectionName: string;
 }
 export const loadPdfIntoVectorStore = async ({
-  pdfStoragePath,
+  pdfLink,
   collectionName,
 }: ILoadPdfIntoVectorStoreProps) => {
   // Load docs
-  const blob = await downloadPdf(pdfStoragePath);
+  const blob = await downloadPdf(pdfLink);
   if (!blob) {
     throw new Error(
       "Failed to get the blob from the loadPdfIntoVectorStore function"
@@ -395,7 +386,7 @@ export const summarizeDocument = async (chat: Chat) => {
   ]).withConfig({ runName: "Map reduce" });
 
   // spliting the doc
-  const blob = await downloadPdf(chat.pdfStoragePath);
+  const blob = await downloadPdf(chat.pdfLink);
   if (!blob) {
     // console.log(
     //   "Failed to get the blob from the loadPdfIntoVectorStore function"
@@ -580,7 +571,7 @@ export const createFlashcards = async (chat: Chat) => {
   ]).withConfig({ runName: "Map reduce" });
 
   // spliting the doc
-  const blob = await downloadPdf(chat.pdfStoragePath);
+  const blob = await downloadPdf(chat.pdfLink);
   if (!blob) {
     // console.log(
     //   "Failed to get the blob from the loadPdfIntoVectorStore function"

@@ -25,6 +25,8 @@ const Editor: React.FC<IEditorProps> = ({
     loadBlock().then((content) => {
       setInitialContent(content);
     });
+    // load the saved note once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const editor = useMemo(() => {

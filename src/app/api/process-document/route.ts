@@ -3,18 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadPdfIntoVectorStore } from "@/actions/process-pdf";
 
 interface IBody {
-  pdfStoragePath: string;
+  pdfLink: string;
   collectionName: string;
 }
 export async function POST(req: NextRequest, res: NextResponse) {
   const payload = (await req.json()) as IBody;
   console.log("🚀 ~ POST ~ process-document ~ payload:", payload);
 
-  const { collectionName, pdfStoragePath } = payload;
+  const { collectionName, pdfLink } = payload;
 
   try {
     const collection = await loadPdfIntoVectorStore({
-      pdfStoragePath,
+      pdfLink,
       collectionName,
     });
 
