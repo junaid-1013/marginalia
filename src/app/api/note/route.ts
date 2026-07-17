@@ -1,46 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-import { saveChatNote, getChatNote } from "@/services/db/chat";
+import {
+  errorResponse,
+  parseBody,
+  parseQuery,
+  requireOwnedChat,
+} from "@/lib/api-guard";
+import { saveChatNote } from "@/services/db/chat";
 
-interface IBody {
-  chatId: string;
-  block: string;
-}
-export async function POST(req: NextRequest, res: NextResponse) {
-  const payload = (await req.json()) as IBody;
+const bodySchema = z.object({
+  chatId: z.string().min(1),
+  block: z.string().min(1).max(500_000),
+});
+const querySchema = z.object({ chatId: z.string().min(1) });
 
-  const { chatId, block } = payload;
-
+export async function POST(req: Request) {
   try {
-    const note = await saveChatNote({ chatId, note: block });
-    return Response.json(note, {
-      status: 200,
-    });
+    const { chatId, block } = await parseBody(req, bodySchema);
+    const { chat } = await requireOwnedChat(chatId);
+    const note = await saveChatNote({ chatId: chat.id, note: block });
+    return Response.json(note, { status: 200 });
   } catch (e) {
-    console.error(e);
-    return Response.json({ error: "Failed to Save Note" }, { status: 500 });
+    return errorResponse(e, "Failed to save note");
   }
 }
 
-export async function GET(req: NextRequest, res: NextResponse) {
-  const url = new URL(req.url);
-  // console.log({ url }, "from note route with rocket icon here ");
-  const searchParams = url.searchParams;
-  const chatId = searchParams.get("chatId");
-  // console.log(chatId, "from note route with rocket icon here ");
-
+export async function GET(req: Request) {
   try {
-    if (!chatId) {
-      return Response.json({ error: "ChatId not found" }, { status: 404 });
-    }
-
-    const note = await getChatNote(chatId);
-
-    return Response.json(note, {
-      status: 200,
-    });
+    const { chatId } = parseQuery(req, querySchema);
+    const { chat } = await requireOwnedChat(chatId);
+    return Response.json(chat.note, { status: 200 });
   } catch (e) {
-    console.error(e);
-    return Response.json({ error: "Failed to Get Note" }, { status: 500 });
+    return errorResponse(e, "Failed to get note");
   }
 }

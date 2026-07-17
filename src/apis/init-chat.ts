@@ -4,7 +4,6 @@ interface IPayload {
   name: string;
   pdfLink: string;
   pdfStoragePath: string;
-  userId: string;
 }
 
 export const initChatAPI = async (chatConfig: IPayload) => {

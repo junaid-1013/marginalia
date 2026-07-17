@@ -1,4 +1,4 @@
-"use server";
+// no "use server": these must never become public server actions.
 // TODO: make this file to the sepatation of concent like ingest, etc...
 import * as z from "zod";
 
@@ -96,24 +96,19 @@ export const loadPdfIntoVectorStore = async ({
 
   const embeddings = new OpenAIEmbeddings();
   const qdrantClient = getQDrantClient();
-  const vectorStore = await QdrantVectorStore.fromDocuments(
-    chunks,
-    embeddings,
-    {
-      client: qdrantClient,
-      collectionName,
-      collectionConfig: {
-        vectors: {
-          size: 1536,
-          distance: "Cosine",
-        },
+  // fromDocuments creates the collection and writes every chunk (awaited)
+  await QdrantVectorStore.fromDocuments(chunks, embeddings, {
+    client: qdrantClient,
+    collectionName,
+    collectionConfig: {
+      vectors: {
+        size: 1536,
+        distance: "Cosine",
       },
-    }
-  );
+    },
+  });
 
-  const collection = qdrantClient.getCollection(collectionName);
-  vectorStore.addDocuments(chunks);
-  return collection;
+  return qdrantClient.getCollection(collectionName);
 };
 
 interface IChatFromExistingCollectionProps {
@@ -170,7 +165,16 @@ export const ChatFromExistingCollection = async ({
     return new AIMessage(message.content);
   });
 
-  const { stream, handlers } = LangChainStream();
+  // the assistant answer is saved here, on the server, once streaming completes
+  const { stream, handlers } = LangChainStream({
+    onCompletion: async (completion) => {
+      try {
+        await saveMessage({ chatId, role: "assistant", content: completion });
+      } catch (e) {
+        console.error("Failed to save assistant message", e);
+      }
+    },
+  });
 
   // RAG CHAIN 🤖
   const qaSystemPrompt = `You are an assistant for question-answering tasks from the document as an instructor of the document.
@@ -206,20 +210,29 @@ export const ChatFromExistingCollection = async ({
     new StringOutputParser(),
   ]);
 
-  saveMessage({
+  if (!lastUserMessage) {
+    throw new Error("No user message to answer");
+  }
+
+  await saveMessage({
     chatId,
-    message: lastUserMessage as Message,
+    role: "user",
+    content: lastUserMessage.content,
   });
 
-  ragChain.invoke(
-    {
-      question: lastUserMessage?.content as string,
-      chat_history: chatHistory,
-    },
-    {
-      callbacks: [handlers],
-    }
-  );
+  // errors are forwarded to the stream by the handlers, this only stops
+  // them from surfacing as unhandled promise rejections
+  ragChain
+    .invoke(
+      {
+        question: lastUserMessage.content,
+        chat_history: chatHistory,
+      },
+      {
+        callbacks: [handlers],
+      }
+    )
+    .catch((e) => console.error("RAG chain failed", e));
 
   return stream;
 };

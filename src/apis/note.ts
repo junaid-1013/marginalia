@@ -1,4 +1,3 @@
-"use server5";
 interface INotePOST {
   chatId: string;
   block: string;

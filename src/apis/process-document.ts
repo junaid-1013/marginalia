@@ -1,6 +1,5 @@
 interface IPayload {
-  pdfLink: string;
-  collectionName: string;
+  chatId: string;
 }
 
 export const processDocumentAPI = async (payload: IPayload) => {

@@ -1,20 +1,20 @@
-"use server";
-interface Params {
-  [key: string]: string | string[]; // in this case its [id]
-}
-interface IProps {
-  params: Params;
-}
+import { notFound } from "next/navigation";
 
-import ChatCard from "@/components/chat-card";
+import { auth } from "@/auth";
 import PdfViewer from "@/components/pdf/pdf-viewer";
 import { getUserChat } from "@/services/db/chat";
 
+interface IProps {
+  params: { id: string };
+}
+
 const ChatPage = async ({ params }: IProps) => {
-  const chat = await getUserChat(params.id as string);
-  if (!chat) {
-    return null;
-  }
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const chat = await getUserChat(params.id, session.user.id);
+  if (!chat) notFound();
+
   return <PdfViewer pdfLink={chat.pdfLink} />;
 };
 

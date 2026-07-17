@@ -10,48 +10,23 @@ import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { saveCompletionMessage, getChatMessages } from "@/apis";
-import { Message } from "ai";
+import { type Message } from "ai";
 
 type Props = {
   chat: Chat | null;
+  initialMessages?: Message[];
 };
 
-const ChatCard = ({ chat }: Props) => {
-  const { data: listMessages } = useQuery({
-    queryKey: ["list-messages-from-chat"],
-    queryFn: () => getChatMessages({ chatId: chat?.id as string }),
-  });
-  const { mutateAsync: saveMessage } = useMutation({
-    mutationFn: saveCompletionMessage,
-    onSuccess: () => {
-      // console.log("Chat saved");
-    },
-    onError: (e) => {
-      console.error("Failed to save chat messages", e);
-    },
-  });
-
+const ChatCard = ({ chat, initialMessages }: Props) => {
   const { messages, handleInputChange, handleSubmit, input } = useChat({
     api: "/api/chat",
     sendExtraMessageFields: true,
+    // the server saves both sides of the conversation itself
     body: {
-      collectionName: chat?.collectionName,
       chatId: chat?.id,
     },
-    initialMessages: listMessages,
-
-    onFinish: (dd) => {
-      if (chat) {
-        saveMessage({
-          chatId: chat?.id,
-          message: dd,
-        });
-      }
-    },
+    initialMessages,
   });
-  // console.log("listMessages", listMessages);
   return (
     <Card className="h-full relative flex flex-col border-none pt-6">
       <CardContent className="flex-1 h-full overflow-y-auto">

@@ -1,69 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
+import { createFlashcards } from "@/actions/process-pdf";
 import {
-  getChatFlashcards,
-  getUserChat,
-  saveFlashcards,
-  saveMessage,
-  saveSummary,
-} from "@/services/db/chat";
-import { Message } from "ai";
-import { summarizeDocument, createFlashcards } from "@/actions/process-pdf";
+  errorResponse,
+  limitUser,
+  parseBody,
+  parseQuery,
+  requireOwnedChat,
+} from "@/lib/api-guard";
+import { getChatFlashcards, saveFlashcards } from "@/services/db/chat";
 
-interface IBody {
-  chatId: string;
-}
-export async function POST(req: NextRequest, res: NextResponse) {
-  const payload = (await req.json()) as IBody;
+const bodySchema = z.object({ chatId: z.string().min(1) });
+const querySchema = z.object({ chatId: z.string().min(1) });
 
-  const { chatId } = payload;
-  // console.log({ chatId }, "from NEW route START emoji here  🚀");
-
+export async function POST(req: Request) {
   try {
-    const chat = await getUserChat(chatId);
-    // console.log({ chat }, "from NEW route");
-    if (!chat) {
-      return Response.json(
-        { error: "Chat not found while going to summarize" },
-        { status: 404 }
-      );
-    }
+    const { chatId } = await parseBody(req, bodySchema);
+    const { userId, chat } = await requireOwnedChat(chatId);
+    limitUser(userId, "flashcards", 5);
+
     const { flashcards } = await createFlashcards(chat);
-    // console.log("GREEN CHECK icon here means COMPLETED FLASHCARD 🚀");
-    await saveFlashcards({ chatId, flashcards });
-    return Response.json(flashcards, {
-      status: 200,
-    });
+    await saveFlashcards({ chatId: chat.id, flashcards });
+    return Response.json(flashcards, { status: 200 });
   } catch (e) {
-    console.error(e);
-    return Response.json({ error: "Failed to Summarize" }, { status: 500 });
+    return errorResponse(e, "Failed to create flashcards");
   }
 }
 
-export async function GET(req: NextRequest, res: NextResponse) {
-  const url = new URL(req.url);
-  const searchParams = url.searchParams;
-  const chatId = searchParams.get("chatId");
-
-  if (!chatId) {
-    return Response.json({ error: "ChatId not found" }, { status: 404 });
-  }
-
+export async function GET(req: Request) {
   try {
-    const flashcards = await getChatFlashcards(chatId);
-    // console.log("GREEN CHECK icon here means GETTING FLASHCARD 🚀", {
-    //   flashcards,
-    //   chatId,
-    // });
-
-    return Response.json(flashcards, {
-      status: 200,
-    });
+    const { chatId } = parseQuery(req, querySchema);
+    const { chat } = await requireOwnedChat(chatId);
+    const flashcards = await getChatFlashcards(chat.id);
+    return Response.json(flashcards, { status: 200 });
   } catch (e) {
-    console.error(e);
-    return Response.json(
-      { error: "Failed to get flashcards" },
-      { status: 500 }
-    );
+    return errorResponse(e, "Failed to get flashcards");
   }
 }

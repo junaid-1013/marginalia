@@ -4,7 +4,6 @@ import * as z from "zod";
 import { AuthError } from "next-auth";
 
 import { loginSchema } from "@/schemas/auth";
-import { getUserByEmail } from "@/services/db/user";
 import { signIn } from "@/auth";
 import { DEFAULT_REDIRECT_URL } from "@/lib/routes";
 
@@ -16,12 +15,6 @@ export const login = async (values: TFormDataType) => {
     return { error: "Invalid Fields" };
   }
   const { email, password } = validateFields.data;
-
-  const existingUser = await getUserByEmail(email);
-
-  if (!existingUser || !existingUser.email || !existingUser.password) {
-    return { error: "Email does not exist!" };
-  }
 
   try {
     await signIn("credentials", {

@@ -1,34 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { loadPdfIntoVectorStore } from "@/actions/process-pdf";
+import {
+  errorResponse,
+  limitUser,
+  parseBody,
+  requireOwnedChat,
+} from "@/lib/api-guard";
 
-interface IBody {
-  pdfLink: string;
-  collectionName: string;
-}
-export async function POST(req: NextRequest, res: NextResponse) {
-  const payload = (await req.json()) as IBody;
-  console.log("🚀 ~ POST ~ process-document ~ payload:", payload);
+const bodySchema = z.object({ chatId: z.string().min(1) });
 
-  const { collectionName, pdfLink } = payload;
-
+export async function POST(req: Request) {
   try {
-    const collection = await loadPdfIntoVectorStore({
-      pdfLink,
-      collectionName,
-    });
+    const { chatId } = await parseBody(req, bodySchema);
+    const { userId, chat } = await requireOwnedChat(chatId);
+    limitUser(userId, "process-document", 5);
 
-    return Response.json(
-      { collection },
-      {
-        status: 201,
-      }
-    );
+    // link and collection come from the database, never from the client
+    const collection = await loadPdfIntoVectorStore({
+      pdfLink: chat.pdfLink,
+      collectionName: chat.collectionName,
+    });
+    return Response.json({ collection }, { status: 201 });
   } catch (e) {
-    console.error(e);
-    return Response.json(
-      { error: "Failed to process document from /process-document route" },
-      { status: 500 }
-    );
+    return errorResponse(e, "Failed to process document");
   }
 }

@@ -39,8 +39,6 @@ import { flashcardsAPI } from "@/apis/flashcards";
 const CreateForm = () => {
   const { data } = useSession();
   const router = useRouter();
-  const [chatId, setChatId] = useState<string>("");
-  // save the chat in local variable
 
   const [stateOfAlert, setStateOfAlert] = useState({
     variant: "default",
@@ -90,8 +88,6 @@ const CreateForm = () => {
     },
     onSuccess: async (data) => {
       toast.success("Chat created successfully");
-      // save the chat in the ref
-      setChatId(data.chat.id);
     },
   });
   // 3. get document, load and split it, make embeddings and then store in the vector db
@@ -104,7 +100,7 @@ const CreateForm = () => {
     onError: (error) => {
       toast.error("Failed to process document");
     },
-    onSuccess: async (data) => {
+    onSuccess: async (data, { chatId }) => {
       // data is the collection
       toast.success("Document processed successfully");
       router.push(`/documents/${chatId}/view`);
@@ -148,15 +144,13 @@ const CreateForm = () => {
       name: values.title,
       pdfStoragePath: uploaded.pathname,
       pdfLink: uploaded.url,
-      userId,
     };
     const initializedChat = await mutateInitChat(chatConfig);
 
     if (!initializedChat || !initializedChat.chat) return;
 
     const doc = await mutateProcessDocument({
-      pdfLink: initializedChat.chat.pdfLink,
-      collectionName: initializedChat.chat.collectionName,
+      chatId: initializedChat.chat.id,
     });
 
     // if (!initializedChat.chat.id) return;

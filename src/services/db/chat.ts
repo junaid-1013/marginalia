@@ -1,9 +1,11 @@
-"use server";
+// NOTE: no "use server" here on purpose. That directive would expose every
+// export as a public server action callable by any client. These helpers are
+// only meant to be called from route handlers / server components, after the
+// caller has been authorised (see lib/api-guard.ts).
+import { Prisma, Role } from "@prisma/client";
+import { randomUUID } from "crypto";
 
-import { cache } from "react";
-import { PrismaClient, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { Message } from "ai";
 import { IFlashcard, ISummary } from "@/types";
 
 interface IProps {
@@ -19,228 +21,107 @@ export const initializeChat = async ({
   pdfLink,
   pdfStoragePath,
 }: IProps) => {
-  const collectionName = `${name.toLowerCase().replace(/\s/g, "-")}-${userId}`;
+  // opaque and always valid as a vector collection name
+  const collectionName = `doc-${randomUUID()}`;
   try {
-    const chat = await db.chat.create({
+    return await db.chat.create({
       data: {
-        user: {
-          connect: {
-            id: userId,
-          },
-        },
+        user: { connect: { id: userId } },
         name,
         pdfLink,
         pdfStoragePath,
         collectionName,
       },
     });
-    return chat;
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === "P2002") {
-        throw new Error("Chat Name already exists, it must be unique.");
-        // return {
-        //   status: 400,
-        //   code: e.code,
-        //   message: "Chat Name already existsc, it must be unique.",
-        // };
-      } else {
-        throw new Error(e.message);
-        // return {
-        //   stutes: 500,
-        //   code: e.code,
-        //   message: e.message,
-        // };
-      }
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new Error("You already have a document with this name.");
     }
+    throw e;
   }
 };
 
-export const getUserChats = cache(async (userId: string) => {
-  "use server";
+export const getUserChats = async (userId: string) => {
   try {
-    const chats = await db.chat.findMany({
-      where: {
-        userId,
-      },
+    return await db.chat.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
     });
-    console.log("🚀 ~ getUserChats ~ chats:", chats);
-    return chats;
   } catch (e) {
-    console.log("🚨 ~ getUserChats ~ e:", e);
+    console.error("getUserChats failed", e);
     return null;
   }
-});
+};
 
-export const getUserChat = cache(async (chatId: string) => {
-  "use server";
+/** Returns the chat only when it belongs to `userId`. */
+export const getUserChat = async (chatId: string, userId: string) => {
   try {
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-    });
-    return chat;
+    return await db.chat.findFirst({ where: { id: chatId, userId } });
   } catch (e) {
-    // console.log(e);
+    console.error("getUserChat failed", e);
     return null;
   }
-});
-
-// export const getCollectionNameByChatId = cache(async (chatId: string) => {
-//   "use server";
-//   try {
-//     const chat = await db.chat.findUnique({
-//       where: {
-//         id: chatId,
-//       },
-//     });
-//     return chat?.collectionName;
-//   } catch (e) {
-//     console.log(e);
-//     return null;
-//   }
-// });
+};
 
 export const saveMessage = async ({
   chatId,
-  message,
+  role,
+  content,
 }: {
   chatId: string;
-  message: Message;
+  role: Role;
+  content: string;
 }) => {
-  "use server";
-  try {
-    // console.log({ chatId, message }, "lastly fromm the db service🚀");
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-    });
-    if (!chat) {
-      throw new Error("Chat not found");
-    }
-    const updatedChat = await db.chat.update({
-      where: {
-        id: chatId,
-      },
-      data: {
-        messages: {
-          create: {
-            // destructureing becuase of the BaseMessage of the Llangchain when passing in the history chain
-            id: message.id,
-            content: message.content,
-            createdAt: message.createdAt,
-            role: message.role,
-          },
-        },
-      },
-    });
-
-    return updatedChat;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to save chat messages");
-  }
+  // id and createdAt are always generated here, never taken from the client
+  return db.message.create({ data: { chatId, role, content } });
 };
 
 export const getChatMessages = async (chatId: string) => {
-  "use server";
-  try {
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-      include: {
-        messages: true,
-      },
-    });
-    return chat?.messages;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to fetch chat messages");
-  }
+  return db.message.findMany({
+    where: { chatId },
+    orderBy: { createdAt: "asc" },
+  });
 };
 
-// save the summary of the chat by chatId
 interface ISaveSummary {
   chatId: string;
   summary: ISummary;
 }
-// TODO: when createing again the Summary, the one to one, do problem with the chatId for the unique id, so solve that issue
+
+/** Replaces any existing summary of the chat. */
 export const saveSummary = async ({ chatId, summary }: ISaveSummary) => {
-  "use server";
-  // console.log({ chatId, summary }, "SAVING 🚀");
-
-  if (!chatId || !summary) {
-    throw new Error("Invalid chatId or summary");
-  }
-  try {
-    // Ensure that the chat exists before updating the summary
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-    });
-
-    if (!chat) {
-      throw new Error("Chat not found");
-    }
-
-    const updatedChat = await db.chat.update({
-      where: {
-        id: chatId,
-      },
+  await db.$transaction([
+    // words are removed through the onDelete: Cascade relation
+    db.summary.deleteMany({ where: { chatId } }),
+    db.summary.create({
       data: {
-        summary: {
-          create: {
-            introduction: summary.introduction,
-            abstract: summary.abstract,
-            keyTakeaways: summary.keyTakeaways,
-            tldr: summary.tldr,
-            mostUsedWords: {
-              createMany: {
-                skipDuplicates: true,
-                data: summary.mostUsedWords.map((word) => ({
-                  text: word.text,
-                  value: word.value,
-                })),
-              },
-            },
+        chatId,
+        introduction: summary.introduction,
+        abstract: summary.abstract,
+        keyTakeaways: summary.keyTakeaways,
+        tldr: summary.tldr,
+        mostUsedWords: {
+          createMany: {
+            data: summary.mostUsedWords.map((word) => ({
+              text: word.text,
+              value: word.value,
+            })),
           },
         },
       },
-    });
-
-    return updatedChat.id;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to save chat summary");
-  }
+    }),
+  ]);
+  return chatId;
 };
-// getChatSummary
+
 export const getChatSummary = async (chatId: string) => {
-  "use server";
-  try {
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-      include: {
-        summary: {
-          include: {
-            mostUsedWords: true,
-          },
-        },
-      },
-    });
-    return chat?.summary;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to fetch chat summary");
-  }
+  return db.summary.findUnique({
+    where: { chatId },
+    include: { mostUsedWords: true },
+  });
 };
 
+/** Replaces any existing flashcards of the chat. */
 export const saveFlashcards = async ({
   chatId,
   flashcards,
@@ -248,45 +129,21 @@ export const saveFlashcards = async ({
   chatId: string;
   flashcards: IFlashcard[];
 }) => {
-  try {
-    // console.log({ chatId, flashcards }, "from the db service 🚀");
-    if (!chatId || !flashcards) {
-      throw new Error("Invalid chatId or flashcards");
-    }
-    const updatedChat = await db.chat.update({
-      where: {
-        id: chatId,
-      },
-      data: {
-        flashcards: {
-          createMany: {
-            data: flashcards.map((flashcard) => ({
-              question: flashcard.question,
-              answer: flashcard.answer,
-            })),
-          },
-        },
-      },
-    });
-    return updatedChat.id;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to save chat flashcards");
-  }
+  await db.$transaction([
+    db.flashcard.deleteMany({ where: { chatId } }),
+    db.flashcard.createMany({
+      data: flashcards.map((flashcard) => ({
+        chatId,
+        question: flashcard.question,
+        answer: flashcard.answer,
+      })),
+    }),
+  ]);
+  return chatId;
 };
 
 export const getChatFlashcards = async (chatId: string) => {
-  try {
-    const fcs = await db.flashcard.findMany({
-      where: {
-        chatId,
-      },
-    });
-    return fcs;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to fetch chat flashcards");
-  }
+  return db.flashcard.findMany({ where: { chatId } });
 };
 
 export const saveChatNote = async ({
@@ -296,37 +153,9 @@ export const saveChatNote = async ({
   chatId: string;
   note: string;
 }) => {
-  try {
-    if (!chatId || !note) {
-      throw new Error("Invalid chatId or note");
-    }
-    const updatedChat = await db.chat.update({
-      where: {
-        id: chatId,
-      },
-      data: {
-        note,
-      },
-    });
-    return updatedChat.note;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to save chat note");
-  }
-};
-export const getChatNote = async (chatId: string) => {
-  try {
-    const chat = await db.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-    });
-    if (!chat) {
-      throw new Error("Chat not found");
-    }
-    return chat?.note;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to fetch chat note");
-  }
+  const updated = await db.chat.update({
+    where: { id: chatId },
+    data: { note },
+  });
+  return updated.note;
 };
