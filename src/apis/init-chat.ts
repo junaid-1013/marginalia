@@ -12,10 +12,14 @@ export const initChatAPI = async (chatConfig: IPayload) => {
       method: "POST",
       body: JSON.stringify(chatConfig),
     });
-    if (!response.ok) throw new Error("Failed to initialize chat");
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error ?? "Failed to initialize chat");
+    }
     const chat: { chat: Chat } = await response.json();
     return chat;
   } catch (e) {
-    throw new Error("Failed to initialize chat");
+    // keep the server's message (e.g. duplicate name) for the toast
+    throw e instanceof Error ? e : new Error("Failed to initialize chat");
   }
 };

@@ -2,19 +2,14 @@ interface IPayload {
   chatId: string;
 }
 
+/** Asks the server to (re)run the processing pipeline. Returns immediately. */
 export const processDocumentAPI = async (payload: IPayload) => {
-  try {
-    const response = await fetch("/api/process-document", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      throw new Error("Failed to process document");
-    }
-    const collection = await response.json();
-    return collection;
-  } catch (e) {
-    console.error("Error processing document:", { e });
-    throw new Error("Failed to process document");
+  const response = await fetch("/api/process-document", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to start processing");
   }
+  return response.json();
 };

@@ -2,20 +2,24 @@
 
 import { InboxIcon as EmptyBoxIcon, LoaderIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FlashcardArray } from "react-quizlet-flashcard";
 
 import { Button } from "@/components/ui/button";
 import { flashcardsAPI, getChatFlashCards } from "@/apis/flashcards";
+import { useDocumentStatus } from "@/hooks/use-document-status";
 
 const DocumentFlashcardsPage = () => {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const { data: status, flashcardsRunning, isReady } = useDocumentStatus(id as string);
 
-  const { mutate, data, isPending } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: flashcardsAPI,
-    onSuccess: (data) => {
-      // console.log("data", data);
-    },
+    // generation runs in the background, start polling the status
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["status", id] }),
     onError: (error) => {
       console.error("error", error);
     },
@@ -25,7 +29,15 @@ const DocumentFlashcardsPage = () => {
     queryKey: ["flashcards-associated-with-Chat", id],
     queryFn: getChatFlashCards,
   });
-  // console.log({ flashcardsData });
+
+  // load the flashcards as soon as the background job reports it is done
+  useEffect(() => {
+    if (status?.flashcardsStatus === "READY") {
+      queryClient.invalidateQueries({
+        queryKey: ["flashcards-associated-with-Chat", id],
+      });
+    }
+  }, [status?.flashcardsStatus, id, queryClient]);
   return (
     <>
       <main className="container py-4">
@@ -37,9 +49,9 @@ const DocumentFlashcardsPage = () => {
           {!(flashcardsData && flashcardsData.length > 0) && (
             <Button
               onClick={() => mutate({ chatId: id as string })}
-              disabled={isPending}
+              disabled={isPending || flashcardsRunning || !isReady}
             >
-              {isPending && (
+              {(isPending || flashcardsRunning) && (
                 <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
               )}
               Get Flashcards
@@ -51,7 +63,11 @@ const DocumentFlashcardsPage = () => {
             <div className="absolte top-1/2 left-1/2 flex flex-col items-center justify-center w-full h-96">
               <EmptyBoxIcon className="w-24 h-24 text-muted-foreground" />
               <p className="text-lg text-muted-foreground">
-                No Flashcards found
+                {flashcardsRunning
+                  ? "Generating your flashcards..."
+                  : status?.flashcardsStatus === "FAILED"
+                  ? "Flashcards failed. Try again."
+                  : "No Flashcards found"}
               </p>
             </div>
           )}

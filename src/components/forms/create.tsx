@@ -31,10 +31,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/upload-file";
-import { initChatAPI, summarize } from "@/apis";
+import { initChatAPI } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { processDocumentAPI } from "@/apis/process-document";
-import { flashcardsAPI } from "@/apis/flashcards";
 
 const CreateForm = () => {
   const { data } = useSession();
@@ -47,18 +45,6 @@ const CreateForm = () => {
   });
 
   // MUTATIONS
-
-  // some FILE operations NEEDED when creation of chat ~ onSuccess of processDocumentAPI
-  const { mutateAsync: generateSummary } = useMutation({
-    mutationFn: summarize,
-    onSuccess: (data) => {},
-    onError: (error) => {},
-  });
-  const { mutateAsync: generateFlashcards } = useMutation({
-    mutationFn: flashcardsAPI,
-    onSuccess: (data) => {},
-    onError: (error) => {},
-  });
 
   // 1. upload file to the bucket
   const {
@@ -84,32 +70,11 @@ const CreateForm = () => {
     mutationFn: initChatAPI,
 
     onError: (error) => {
-      toast.error(`Failed to initialize chat`);
+      toast.error(error.message);
     },
     onSuccess: async (data) => {
-      toast.success("Chat created successfully");
-    },
-  });
-  // 3. get document, load and split it, make embeddings and then store in the vector db
-  const {
-    mutateAsync: mutateProcessDocument,
-    isPending: processDocumentIsPending,
-    isError: processDocumentIsError,
-  } = useMutation({
-    mutationFn: processDocumentAPI,
-    onError: (error) => {
-      toast.error("Failed to process document");
-    },
-    onSuccess: async (data, { chatId }) => {
-      // data is the collection
-      toast.success("Document processed successfully");
-      router.push(`/documents/${chatId}/view`);
-      console.log(
-        "🚀 ~  ~ onSuccess of process-document mutation ~ chatId:",
-        chatId
-      );
-      await generateSummary({ chatId });
-      await generateFlashcards({ chatId });
+      toast.success("Document uploaded. Processing continues in the background.");
+      router.push(`/documents/${data.chat.id}/view`);
     },
   });
   //
@@ -145,45 +110,26 @@ const CreateForm = () => {
       pdfStoragePath: uploaded.pathname,
       pdfLink: uploaded.url,
     };
-    const initializedChat = await mutateInitChat(chatConfig);
+    await mutateInitChat(chatConfig);
 
-    if (!initializedChat || !initializedChat.chat) return;
-
-    const doc = await mutateProcessDocument({
-      chatId: initializedChat.chat.id,
-    });
-
-    // if (!initializedChat.chat.id) return;
   }
 
   useEffect(() => {
-    if (uploadFileIsError || initChatIsError || processDocumentIsError) {
+    if (uploadFileIsError || initChatIsError) {
       setStateOfAlert({
         variant: "destructive",
         title: "Oops!",
-        description: processDocumentIsError
-          ? "Failed to process document"
-          : uploadFileIsError
+        description: uploadFileIsError
           ? "Failed to upload file"
           : "Failed to initialize chat",
       });
-    } else if (
-      uploadFileIsPending ||
-      initChatIsPending ||
-      processDocumentIsPending
-    ) {
+    } else if (uploadFileIsPending || initChatIsPending) {
       setStateOfAlert({
         variant: "pending",
-        title: uploadFileIsPending
-          ? "Uploading file"
-          : initChatIsPending
-          ? "Initializing Chat"
-          : "Processing Document",
+        title: uploadFileIsPending ? "Uploading file" : "Creating document",
         description: uploadFileIsPending
           ? "Please wait while we upload your file"
-          : initChatIsPending
-          ? "Please wait while we initialize your chat"
-          : "Please wait while we process your document",
+          : "Almost done, processing starts in the background",
       });
     } else {
       setStateOfAlert({
@@ -197,8 +143,6 @@ const CreateForm = () => {
     uploadFileIsError,
     initChatIsPending,
     initChatIsError,
-    processDocumentIsPending,
-    processDocumentIsError,
   ]);
 
   return (
@@ -220,7 +164,7 @@ const CreateForm = () => {
         <AlertDescription>{stateOfAlert.description}</AlertDescription>
         {/* pleaase be patient dont quite until its completed rephraaase it in better words */}
         <p className="text-muted-foreground text-xs mt-2">
-          Note: Please do not close the tab until the process is completed
+          Note: keep this tab open until the upload finishes. Processing then continues in the background.
         </p>
       </Alert>
 
@@ -285,16 +229,13 @@ const CreateForm = () => {
             className="w-full"
             disabled={
               uploadFileIsPending ||
-              initChatIsPending ||
-              processDocumentIsPending || // if there is erorrs of the form validation state use hook form
+              initChatIsPending || // if there is erorrs of the form validation state use hook form
               // if there is no file in form
               !form.getValues("pdfFile") ||
               !form.getValues("title")
             }
           >
-            {uploadFileIsPending ||
-            initChatIsPending ||
-            processDocumentIsPending
+            {uploadFileIsPending || initChatIsPending
               ? "Please wait..."
               : "Create Chat"}
           </Button>

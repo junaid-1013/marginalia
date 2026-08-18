@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
@@ -31,6 +32,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "framer-motion": "^11.0.25",
+    "inngest": "^3.54.2",
     "langchain": "^0.1.30",
     "lodash": "^4.17.21",
     "lucide-react": "^0.294.0",

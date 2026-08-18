@@ -20,7 +20,8 @@ export default auth((req) => {
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
-  if (isApiAuthRoute) {
+  // Inngest calls this server-to-server, it is verified with INNGEST_SIGNING_KEY
+  if (isApiAuthRoute || nextUrl.pathname.startsWith("/api/inngest")) {
     return;
   }
   if (isAuthRoute) {

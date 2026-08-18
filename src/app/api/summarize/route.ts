@@ -1,26 +1,34 @@
 import { z } from "zod";
 
-import { summarizeDocument } from "@/actions/process-pdf";
 import {
   errorResponse,
   limitUser,
   parseBody,
   requireOwnedChat,
 } from "@/lib/api-guard";
-import { saveSummary } from "@/services/db/chat";
+import { inngest } from "@/inngest/client";
+import { updateChatStatus } from "@/services/db/chat";
 
 const bodySchema = z.object({ chatId: z.string().min(1) });
 
+/** Queues (re)generation of the summary. Progress is read from /api/status. */
 export async function POST(req: Request) {
   try {
     const { chatId } = await parseBody(req, bodySchema);
     const { userId, chat } = await requireOwnedChat(chatId);
     limitUser(userId, "summarize", 5);
 
-    const summary = await summarizeDocument(chat);
-    await saveSummary({ chatId: chat.id, summary });
-    return Response.json(summary, { status: 200 });
+    if (chat.status !== "READY") {
+      return Response.json({ error: "Document is not ready yet" }, { status: 409 });
+    }
+    if (chat.summaryStatus === "PENDING" || chat.summaryStatus === "PROCESSING") {
+      return Response.json({ error: "Already generating" }, { status: 409 });
+    }
+
+    await updateChatStatus(chat.id, { summaryStatus: "PENDING" });
+    await inngest.send({ name: "document/summarize", data: { chatId: chat.id } });
+    return Response.json({ status: "PENDING" }, { status: 202 });
   } catch (e) {
-    return errorResponse(e, "Failed to summarize");
+    return errorResponse(e, "Failed to start summary");
   }
 }

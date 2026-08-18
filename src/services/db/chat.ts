@@ -159,3 +159,24 @@ export const saveChatNote = async ({
   });
   return updated.note;
 };
+
+// ---- background pipeline state --------------------------------------------
+
+export const getChatStatus = async (chatId: string) => {
+  return db.chat.findUnique({
+    where: { id: chatId },
+    select: {
+      status: true,
+      summaryStatus: true,
+      flashcardsStatus: true,
+      processingError: true,
+    },
+  });
+};
+
+export const updateChatStatus = async (
+  chatId: string,
+  data: Prisma.ChatUpdateInput
+) => {
+  return db.chat.update({ where: { id: chatId }, data });
+};

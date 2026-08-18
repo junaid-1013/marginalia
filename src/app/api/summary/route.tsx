@@ -7,6 +7,9 @@ import {
 } from "@/lib/api-guard";
 import { getChatSummary } from "@/services/db/chat";
 
+// reads the query string, never prerender
+export const dynamic = "force-dynamic";
+
 const querySchema = z.object({ chatId: z.string().min(1) });
 
 export async function GET(req: Request) {

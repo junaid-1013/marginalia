@@ -52,8 +52,35 @@ model Chat {
   summary        Summary?
   flashcards     Flashcard[]
   note           String?
+  chunks         Chunk[]
+
+  // background pipeline state (see src/inngest)
+  status           JobStatus @default(PENDING)
+  summaryStatus    JobStatus @default(IDLE)
+  flashcardsStatus JobStatus @default(IDLE)
+  processingError  String?
 
   @@unique([userId, name])
+}
+
+// the parsed PDF text, stored once and reused by indexing, summary and flashcards
+model Chunk {
+  id      String @id @default(cuid())
+  chatId  String
+  chat    Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  index   Int
+  page    Int?
+  content String @db.Text
+
+  @@unique([chatId, index])
+}
+
+enum JobStatus {
+  IDLE
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }
 
 model Flashcard {

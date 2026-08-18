@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createFlashcards } from "@/actions/process-pdf";
+import { inngest } from "@/inngest/client";
 import {
   errorResponse,
   limitUser,
@@ -8,20 +8,34 @@ import {
   parseQuery,
   requireOwnedChat,
 } from "@/lib/api-guard";
-import { getChatFlashcards, saveFlashcards } from "@/services/db/chat";
+import { getChatFlashcards, updateChatStatus } from "@/services/db/chat";
 
 const bodySchema = z.object({ chatId: z.string().min(1) });
+// reads the query string, never prerender
+export const dynamic = "force-dynamic";
+
 const querySchema = z.object({ chatId: z.string().min(1) });
 
+/** Queues (re)generation of the flashcards. Progress is read from /api/status. */
 export async function POST(req: Request) {
   try {
     const { chatId } = await parseBody(req, bodySchema);
     const { userId, chat } = await requireOwnedChat(chatId);
     limitUser(userId, "flashcards", 5);
 
-    const { flashcards } = await createFlashcards(chat);
-    await saveFlashcards({ chatId: chat.id, flashcards });
-    return Response.json(flashcards, { status: 200 });
+    if (chat.status !== "READY") {
+      return Response.json({ error: "Document is not ready yet" }, { status: 409 });
+    }
+    if (
+      chat.flashcardsStatus === "PENDING" ||
+      chat.flashcardsStatus === "PROCESSING"
+    ) {
+      return Response.json({ error: "Already generating" }, { status: 409 });
+    }
+
+    await updateChatStatus(chat.id, { flashcardsStatus: "PENDING" });
+    await inngest.send({ name: "document/flashcards", data: { chatId: chat.id } });
+    return Response.json({ status: "PENDING" }, { status: 202 });
   } catch (e) {
     return errorResponse(e, "Failed to create flashcards");
   }

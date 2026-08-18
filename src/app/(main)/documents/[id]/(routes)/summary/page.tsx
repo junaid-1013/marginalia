@@ -6,7 +6,8 @@ import {
   SparkleIcon,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Balancer from "react-wrap-balancer";
 
 import {
@@ -21,15 +22,18 @@ import { Button } from "@/components/ui/button";
 import { getChatSummary } from "@/apis/summary";
 import WordCloud from "@/components/word-cloud";
 import { Separator } from "@/components/ui/separator";
+import { useDocumentStatus } from "@/hooks/use-document-status";
 
 const DocumentSummaryPage = () => {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const { data: status, summaryRunning, isReady } = useDocumentStatus(id as string);
 
-  const { mutate, data, isPending } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: summarize,
-    onSuccess: (data) => {
-      // console.log("data", data);
-    },
+    // generation runs in the background, start polling the status
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["status", id] }),
     onError: (error) => {
       console.error("error", error);
     },
@@ -39,7 +43,15 @@ const DocumentSummaryPage = () => {
     queryKey: ["summary-associated-with-Chat", id],
     queryFn: getChatSummary,
   });
-  // console.log("summary", summary);
+
+  // load the summary as soon as the background job reports it is done
+  useEffect(() => {
+    if (status?.summaryStatus === "READY") {
+      queryClient.invalidateQueries({
+        queryKey: ["summary-associated-with-Chat", id],
+      });
+    }
+  }, [status?.summaryStatus, id, queryClient]);
 
   return (
     <>
@@ -53,9 +65,9 @@ const DocumentSummaryPage = () => {
             {!summary && (
               <Button
                 onClick={() => mutate({ chatId: id as string })}
-                disabled={isPending}
+                disabled={isPending || summaryRunning || !isReady}
               >
-                {isPending && (
+                {(isPending || summaryRunning) && (
                   <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
                 )}
                 Summarize
@@ -68,7 +80,13 @@ const DocumentSummaryPage = () => {
           {!summary && (
             <div className="absolte top-1/2 left-1/2 flex flex-col items-center justify-center w-full h-96">
               <EmptyBoxIcon className="w-24 h-24 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">No summary found</p>
+              <p className="text-lg text-muted-foreground">
+                {summaryRunning
+                  ? "Generating your summary..."
+                  : status?.summaryStatus === "FAILED"
+                  ? "Summary failed. Try again."
+                  : "No summary found"}
+              </p>
             </div>
           )}
 

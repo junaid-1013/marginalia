@@ -1,4 +1,5 @@
 import ChatContainer from "@/components/chat/chat-container";
+import DocumentStatus from "@/components/document-status";
 import SideNav from "@/components/layout/document/sidenav";
 import { Separator } from "@/components/ui/separator";
 import React from "react";
@@ -13,6 +14,7 @@ const DocumentIdLayout: React.FC<IProps> = ({ children, params }) => {
     <div className="flex max-h-[calc(100vh-81px)] min-h-[calc(100vh-81px)] h-full">
       <SideNav params={params} />
       <div className="flex-1 w-2/3 max-h-[calc(100vh-81px)] min-h-[calc(100vh-81px)] overflow-y-auto">
+        <DocumentStatus chatId={params.id} />
         {children}
       </div>
       {/* <div className="w-px bg-black" /> */}

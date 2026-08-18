@@ -12,6 +12,9 @@ const bodySchema = z.object({
   chatId: z.string().min(1),
   block: z.string().min(1).max(500_000),
 });
+// reads the query string, never prerender
+export const dynamic = "force-dynamic";
+
 const querySchema = z.object({ chatId: z.string().min(1) });
 
 export async function POST(req: Request) {

@@ -7,6 +7,7 @@ import { type Chat } from "@prisma/client";
 import Balancer from "react-wrap-balancer";
 
 import { cn } from "@/lib/utils";
+import { useDocumentStatus } from "@/hooks/use-document-status";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
@@ -18,6 +19,12 @@ type Props = {
 };
 
 const ChatCard = ({ chat, initialMessages }: Props) => {
+  const { isReady } = useDocumentStatus(chat?.id ?? "", chat ? {
+    status: chat.status,
+    summaryStatus: chat.summaryStatus,
+    flashcardsStatus: chat.flashcardsStatus,
+    processingError: chat.processingError,
+  } : undefined);
   const { messages, handleInputChange, handleSubmit, input } = useChat({
     api: "/api/chat",
     sendExtraMessageFields: true,
@@ -54,12 +61,13 @@ const ChatCard = ({ chat, initialMessages }: Props) => {
         >
           <Input
             id="message"
-            placeholder="Type your message..."
+            placeholder={isReady ? "Type your message..." : "Available once processing finishes"}
+            disabled={!isReady}
             wrapperClassName="flex-grow"
             value={input}
             onChange={handleInputChange}
           />
-          <Button type="submit" size="icon" disabled={!input}>
+          <Button type="submit" size="icon" disabled={!input || !isReady}>
             <SendIcon className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
