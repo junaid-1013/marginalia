@@ -7,7 +7,6 @@ import {
   getChunks,
   indexChunkBatch,
   ingestChunks,
-  resetCollection,
 } from "@/lib/ai/pipeline";
 import { mapReduce } from "@/lib/ai/map-reduce";
 import { flashcardsConfig, summaryConfig } from "@/lib/ai/prompts";
@@ -24,14 +23,14 @@ const errorMessage = (e: unknown) =>
 const loadChat = async (chatId: string) => {
   const chat = await db.chat.findUnique({
     where: { id: chatId },
-    select: { id: true, pdfLink: true, collectionName: true },
+    select: { id: true, pdfLink: true },
   });
   // no point retrying a chat that was deleted meanwhile
   if (!chat) throw new NonRetriableError("Chat not found");
   return chat;
 };
 
-/** Parse -> chunks in db -> vectors in qdrant -> fan out summary + flashcards. */
+/** Parse -> chunks in db -> embeddings in pgvector -> fan out summary + flashcards. */
 export const processDocument = inngest.createFunction(
   {
     id: "process-document",
@@ -55,16 +54,9 @@ export const processDocument = inngest.createFunction(
 
     const chunkCount = await step.run("ingest", () => ingestChunks(chat));
 
-    await step.run("reset-collection", () =>
-      resetCollection(chat.collectionName)
-    );
     for (let offset = 0; offset < chunkCount; offset += EMBED_BATCH_SIZE) {
       await step.run(`index-${offset}`, () =>
-        indexChunkBatch({
-          chatId,
-          collectionName: chat.collectionName,
-          offset,
-        })
+        indexChunkBatch({ chatId, offset })
       );
     }
 

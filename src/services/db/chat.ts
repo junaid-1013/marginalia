@@ -3,7 +3,6 @@
 // only meant to be called from route handlers / server components, after the
 // caller has been authorised (see lib/api-guard.ts).
 import { Prisma, Role } from "@prisma/client";
-import { randomUUID } from "crypto";
 
 import { db } from "@/lib/db";
 import { IFlashcard, ISummary } from "@/types";
@@ -21,8 +20,6 @@ export const initializeChat = async ({
   pdfLink,
   pdfStoragePath,
 }: IProps) => {
-  // opaque and always valid as a vector collection name
-  const collectionName = `doc-${randomUUID()}`;
   try {
     return await db.chat.create({
       data: {
@@ -30,7 +27,6 @@ export const initializeChat = async ({
         name,
         pdfLink,
         pdfStoragePath,
-        collectionName,
       },
     });
   } catch (e) {

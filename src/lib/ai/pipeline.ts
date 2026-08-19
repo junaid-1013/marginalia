@@ -1,16 +1,27 @@
-import { createHash } from "crypto";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { WebPDFLoader } from "langchain/document_loaders/web/pdf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 import { db } from "@/lib/db";
-import { downloadPdf, getQDrantClient } from "@/actions/process-pdf";
 
 export const CHUNK_SIZE = 1000;
 export const CHUNK_OVERLAP = 100;
 // protects the OpenAI bill: ~800k characters, a few hundred pages
 export const MAX_CHUNKS = 800;
 export const EMBED_BATCH_SIZE = 100;
+
+export const downloadPdf = async (pdfLink: string) => {
+  try {
+    const response = await fetch(pdfLink);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status}`);
+    }
+    return await response.blob();
+  } catch (error) {
+    console.error("Error downloading PDF:", error);
+    return null;
+  }
+};
 
 /**
  * Downloads the PDF, splits it and stores the chunks. This is the only place
@@ -59,65 +70,39 @@ export const countChunks = (chatId: string) =>
 export const getChunks = (chatId: string) =>
   db.chunk.findMany({ where: { chatId }, orderBy: { index: "asc" } });
 
-/** Drops and recreates the (old) vector collection so re-processing is clean. */
-export const resetCollection = async (collectionName: string) => {
-  const client = getQDrantClient();
-  try {
-    await client.deleteCollection(collectionName);
-  } catch {
-    // did not exist yet (or the store is down: createCollection reports that)
-  }
-  try {
-    await client.createCollection(collectionName, {
-      vectors: { size: 1536, distance: "Cosine" },
-    });
-  } catch (e) {
-    throw new Error(
-      `Vector store unavailable (${e instanceof Error ? e.message : "unknown"})`
-    );
-  }
-};
+/** pgvector text format: '[0.1,0.2,...]' */
+export const toVectorLiteral = (vector: number[]) => `[${vector.join(",")}]`;
 
-// qdrant point ids must be uint or uuid. Deriving it from chat + index makes
-// a retried batch overwrite its own points instead of duplicating them.
-const pointId = (chatId: string, index: number) => {
-  const h = createHash("sha1").update(`${chatId}:${index}`).digest("hex");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(
-    16,
-    20
-  )}-${h.slice(20, 32)}`;
-};
-
-/** Embeds `EMBED_BATCH_SIZE` chunks starting at `offset` and upserts them. */
+/**
+ * Embeds `EMBED_BATCH_SIZE` chunks starting at `offset` and stores the vectors.
+ * Idempotent: a retried batch simply overwrites its own rows.
+ */
 export const indexChunkBatch = async ({
   chatId,
-  collectionName,
   offset,
 }: {
   chatId: string;
-  collectionName: string;
   offset: number;
 }) => {
   const chunks = await db.chunk.findMany({
     where: { chatId, index: { gte: offset, lt: offset + EMBED_BATCH_SIZE } },
     orderBy: { index: "asc" },
+    select: { id: true, content: true },
   });
   if (chunks.length === 0) return 0;
 
   const vectors = await new OpenAIEmbeddings().embedDocuments(
     chunks.map((c) => c.content)
   );
-  // same payload shape the langchain Qdrant retriever reads in the chat route
-  await getQDrantClient().upsert(collectionName, {
-    wait: true,
-    points: chunks.map((chunk, i) => ({
-      id: pointId(chatId, chunk.index),
-      vector: vectors[i],
-      payload: {
-        content: chunk.content,
-        metadata: { page: chunk.page, index: chunk.index },
-      },
-    })),
-  });
+  const ids = chunks.map((c) => c.id);
+  const literals = vectors.map(toVectorLiteral);
+
+  await db.$executeRaw`
+    UPDATE "Chunk" AS c
+    SET "embedding" = v.embedding::vector
+    FROM (
+      SELECT unnest(${ids}::text[]) AS id, unnest(${literals}::text[]) AS embedding
+    ) AS v
+    WHERE c."id" = v.id`;
   return chunks.length;
 };

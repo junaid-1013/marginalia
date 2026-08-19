@@ -43,7 +43,6 @@ model Chat {
   name           String
   pdfLink        String
   pdfStoragePath String
-  collectionName String
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   messages       Message[]
@@ -65,12 +64,14 @@ model Chat {
 
 // the parsed PDF text, stored once and reused by indexing, summary and flashcards
 model Chunk {
-  id      String @id @default(cuid())
-  chatId  String
-  chat    Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  index   Int
-  page    Int?
-  content String @db.Text
+  id        String                       @id @default(cuid())
+  chatId    String
+  chat      Chat                         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  index     Int
+  page      Int?
+  content   String                       @db.Text
+  // pgvector, filled by the indexing step. Written/read with raw SQL (src/lib/ai)
+  embedding Unsupported("vector(1536)")?
 
   @@unique([chatId, index])
 }

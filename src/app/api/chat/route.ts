@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StreamingTextResponse } from "ai";
 
-import { ChatFromExistingCollection } from "@/actions/process-pdf";
+import { streamAnswer } from "@/lib/ai/chat";
 import {
   errorResponse,
   limitUser,
@@ -28,8 +28,14 @@ export async function POST(req: Request) {
     const { userId, chat } = await requireOwnedChat(chatId);
     limitUser(userId, "chat", 20);
 
-    const stream = await ChatFromExistingCollection({
-      collectionName: chat.collectionName,
+    if (chat.status !== "READY") {
+      return Response.json(
+        { error: "Document is not ready yet" },
+        { status: 409 }
+      );
+    }
+
+    const stream = await streamAnswer({
       messages: messages as any,
       chatId: chat.id,
     });

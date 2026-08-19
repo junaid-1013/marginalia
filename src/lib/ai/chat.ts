@@ -1,45 +1,16 @@
-// no "use server": these must never become public server actions.
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
-import { QdrantClient } from "@qdrant/js-client-rest";
+import { ChatOpenAI } from "@langchain/openai";
 import { AIMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
-import { QdrantVectorStore } from "@langchain/community/vectorstores/qdrant";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { formatDocumentsAsString } from "langchain/util/document";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { LangChainStream, Message } from "ai";
 
-import { OPENAI_API_KEY, QDRANT } from "@/constants";
+import { OPENAI_API_KEY } from "@/constants";
 import { CHAT_MODEL } from "@/lib/ai/models";
+import { formatChunksAsContext, searchChunks } from "@/lib/ai/retrieval";
 import { saveMessage } from "@/services/db/chat";
 
-let qdClient: QdrantClient | null = null;
-export const getQDrantClient = () => {
-  if (!qdClient) {
-    qdClient = new QdrantClient({
-      url: QDRANT.url,
-      apiKey: QDRANT.apiKey,
-    });
-  }
-
-  return qdClient;
-};
-
-export const downloadPdf = async (pdfLink: string) => {
-  try {
-    const response = await fetch(pdfLink);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status}`);
-    }
-    return await response.blob();
-  } catch (error) {
-    console.error("Error downloading PDF:", error);
-    return null;
-  }
-};
-
-interface IChatFromExistingCollectionProps {
-  collectionName: string;
+interface IStreamAnswerProps {
   messages: Message[];
   chatId: string;
 }
@@ -48,26 +19,10 @@ interface IChatFromExistingCollectionProps {
 // implement messages and context
 // maintain history of the messages
 
-export const ChatFromExistingCollection = async ({
-  collectionName,
+export const streamAnswer = async ({
   messages,
   chatId,
-}: IChatFromExistingCollectionProps) => {
-  const qdrantClient = getQDrantClient();
-  const vectorStore = await QdrantVectorStore.fromExistingCollection(
-    new OpenAIEmbeddings(),
-    {
-      client: qdrantClient,
-      collectionName,
-    }
-  );
-  // const collection = await qdrantClient.getCollection(collectionName); // this is info provider
-
-  const retriever = vectorStore.asRetriever({
-    k: 4, // chunks are 1000 chars
-    verbose: true,
-  });
-
+}: IStreamAnswerProps) => {
   const llm = new ChatOpenAI({
     modelName: CHAT_MODEL,
     temperature: 0.1,
@@ -122,9 +77,9 @@ export const ChatFromExistingCollection = async ({
   }
 
   const retrieverChain = RunnableSequence.from([
-    (prevResult) => prevResult.question,
-    retriever,
-    formatDocumentsAsString,
+    (prevResult) => prevResult.question as string,
+    async (question: string) =>
+      formatChunksAsContext(await searchChunks({ chatId, query: question, k: 4 })),
   ]);
   const ragChain = RunnableSequence.from([
     {
