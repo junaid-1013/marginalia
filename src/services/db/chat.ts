@@ -63,13 +63,15 @@ export const saveMessage = async ({
   chatId,
   role,
   content,
+  sources,
 }: {
   chatId: string;
   role: Role;
   content: string;
+  sources?: Prisma.InputJsonValue;
 }) => {
   // id and createdAt are always generated here, never taken from the client
-  return db.message.create({ data: { chatId, role, content } });
+  return db.message.create({ data: { chatId, role, content, sources } });
 };
 
 export const getChatMessages = async (chatId: string) => {
@@ -165,6 +167,7 @@ export const getChatStatus = async (chatId: string) => {
       status: true,
       summaryStatus: true,
       flashcardsStatus: true,
+      quizStatus: true,
       processingError: true,
     },
   });
@@ -175,4 +178,44 @@ export const updateChatStatus = async (
   data: Prisma.ChatUpdateInput
 ) => {
   return db.chat.update({ where: { id: chatId }, data });
+};
+
+// ---- quiz ------------------------------------------------------------------
+
+interface IQuizQuestion {
+  question: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
+/** Replaces any existing quiz of the chat. */
+export const saveQuiz = async ({
+  chatId,
+  questions,
+}: {
+  chatId: string;
+  questions: IQuizQuestion[];
+}) => {
+  await db.$transaction([
+    db.quizQuestion.deleteMany({ where: { chatId } }),
+    db.quizQuestion.createMany({
+      data: questions.map((q, index) => ({ ...q, chatId, index })),
+    }),
+  ]);
+  return chatId;
+};
+
+export const getChatQuiz = async (chatId: string) => {
+  return db.quizQuestion.findMany({
+    where: { chatId },
+    orderBy: { index: "asc" },
+    select: {
+      id: true,
+      question: true,
+      options: true,
+      answerIndex: true,
+      explanation: true,
+    },
+  });
 };

@@ -4,6 +4,7 @@ export interface IChatStatus {
   status: JobStatus;
   summaryStatus: JobStatus;
   flashcardsStatus: JobStatus;
+  quizStatus: JobStatus;
   processingError: string | null;
 }
 

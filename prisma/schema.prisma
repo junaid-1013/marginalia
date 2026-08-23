@@ -39,24 +39,26 @@ model User {
 }
 
 model Chat {
-  id             String      @id @default(cuid())
+  id             String         @id @default(cuid())
   name           String
   pdfLink        String
   pdfStoragePath String
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   messages       Message[]
-  user           User        @relation(fields: [userId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
   userId         String
   summary        Summary?
   flashcards     Flashcard[]
   note           String?
   chunks         Chunk[]
+  quiz           QuizQuestion[]
 
   // background pipeline state (see src/inngest)
   status           JobStatus @default(PENDING)
   summaryStatus    JobStatus @default(IDLE)
   flashcardsStatus JobStatus @default(IDLE)
+  quizStatus       JobStatus @default(IDLE)
   processingError  String?
 
   @@unique([userId, name])
@@ -97,10 +99,25 @@ model Message {
   createdAt DateTime @default(now())
   content   String
   role      Role     @default(user)
+  // pages the answer was based on: [{ page, snippet }]
+  sources   Json?
   chat      Chat     @relation(fields: [chatId], references: [id])
   chatId    String
 
   @@index([chatId, createdAt])
+}
+
+model QuizQuestion {
+  id          String   @id @default(cuid())
+  chatId      String
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  index       Int
+  question    String
+  options     String[]
+  answerIndex Int
+  explanation String
+
+  @@unique([chatId, index])
 }
 
 model Summary {

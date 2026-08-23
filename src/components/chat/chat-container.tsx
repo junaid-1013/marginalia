@@ -1,3 +1,4 @@
+import { type Message } from "ai";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -24,7 +25,8 @@ const ChatContainer = async ({ params }: IProps) => {
         role: m.role === "assistant" ? "assistant" : "user",
         content: m.content,
         createdAt: m.createdAt,
-      }))}
+        annotations: m.sources ? [{ sources: m.sources }] : undefined,
+      })) as Message[]}
     />
   );
 };

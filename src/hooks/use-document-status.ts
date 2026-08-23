@@ -15,7 +15,7 @@ export const useDocumentStatus = (chatId: string, initial?: IChatStatus) => {
     refetchInterval: (q) => {
       const d = q.state.data;
       return d &&
-        (isActive(d.status) || isActive(d.summaryStatus) || isActive(d.flashcardsStatus))
+        (isActive(d.status) || isActive(d.summaryStatus) || isActive(d.flashcardsStatus) || isActive(d.quizStatus))
         ? 3000
         : false;
     },
@@ -27,5 +27,6 @@ export const useDocumentStatus = (chatId: string, initial?: IChatStatus) => {
     isFailed: query.data?.status === "FAILED",
     summaryRunning: isActive(query.data?.summaryStatus),
     flashcardsRunning: isActive(query.data?.flashcardsStatus),
+    quizRunning: isActive(query.data?.quizStatus),
   };
 };

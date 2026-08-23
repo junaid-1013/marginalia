@@ -9,10 +9,17 @@ import {
   ingestChunks,
 } from "@/lib/ai/pipeline";
 import { mapReduce } from "@/lib/ai/map-reduce";
-import { flashcardsConfig, summaryConfig } from "@/lib/ai/prompts";
+import {
+  MAX_WORDS,
+  QUIZ_QUESTIONS,
+  flashcardsConfig,
+  quizConfig,
+  summaryConfig,
+} from "@/lib/ai/prompts";
 import { db } from "@/lib/db";
 import {
   saveFlashcards,
+  saveQuiz,
   saveSummary,
   updateChatStatus,
 } from "@/services/db/chat";
@@ -114,7 +121,13 @@ export const generateSummary = inngest.createFunction(
 
     const summary = await mapReduce({ step, chunks: texts, config: summaryConfig });
     await step.run("save", async () => {
-      await saveSummary({ chatId, summary });
+      await saveSummary({
+        chatId,
+        summary: {
+          ...summary,
+          mostUsedWords: summary.mostUsedWords.slice(0, MAX_WORDS),
+        },
+      });
       await updateChatStatus(chatId, { summaryStatus: "READY" });
     });
   }
@@ -160,4 +173,75 @@ export const generateFlashcards = inngest.createFunction(
   }
 );
 
-export const functions = [processDocument, generateSummary, generateFlashcards];
+const shuffle = <T,>(items: T[]) => {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+export const generateQuiz = inngest.createFunction(
+  {
+    id: "generate-quiz",
+    retries: 2,
+    concurrency: { limit: 1, key: "event.data.chatId" },
+    onFailure: async ({ event }) => {
+      await updateChatStatus(event.data.event.data.chatId, {
+        quizStatus: "FAILED",
+      }).catch(() => {});
+    },
+  },
+  { event: "document/quiz" },
+  async ({ event, step }) => {
+    const { chatId } = event.data;
+    const chat = await step.run("load-chat", () => loadChat(chatId));
+    await step.run("mark-processing", () =>
+      updateChatStatus(chatId, { quizStatus: "PROCESSING" })
+    );
+
+    const chunks = await step.run("chunks", async () => {
+      await chunkTexts(chat);
+      return (await countChunks(chatId)) as number;
+    });
+    const texts = (await getChunks(chatId)).map((c) => c.content);
+    if (chunks === 0 || texts.length === 0) {
+      throw new NonRetriableError("No text to make a quiz from");
+    }
+
+    const { questions } = await mapReduce({
+      step,
+      chunks: texts,
+      config: quizConfig,
+    });
+
+    await step.run("save", async () => {
+      // models often put the right answer first: shuffle, and drop malformed questions
+      const valid = questions
+        .filter(
+          (q) =>
+            q.options.length === 4 &&
+            Number.isInteger(q.answerIndex) &&
+            q.answerIndex >= 0 &&
+            q.answerIndex < 4
+        )
+        .slice(0, QUIZ_QUESTIONS)
+        .map((q) => {
+          const correct = q.options[q.answerIndex];
+          const options = shuffle(q.options);
+          return { ...q, options, answerIndex: options.indexOf(correct) };
+        });
+      if (valid.length === 0) throw new Error("The model returned no usable questions");
+      await saveQuiz({ chatId, questions: valid });
+      await updateChatStatus(chatId, { quizStatus: "READY" });
+    });
+  }
+);
+
+export const functions = [
+  processDocument,
+  generateSummary,
+  generateFlashcards,
+  generateQuiz,
+];

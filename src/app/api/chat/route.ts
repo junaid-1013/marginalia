@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { StreamingTextResponse } from "ai";
 
 import { streamAnswer } from "@/lib/ai/chat";
 import {
+  ApiError,
   errorResponse,
   limitUser,
   parseBody,
@@ -13,10 +13,13 @@ const bodySchema = z.object({
   chatId: z.string().min(1),
   messages: z
     .array(
-      z.object({
-        role: z.enum(["user", "assistant", "system"]),
-        content: z.string().max(8000),
-      }).passthrough()
+      z
+        .object({
+          // never accept "system" from the client: only the server sets the prompt
+          role: z.enum(["user", "assistant"]),
+          content: z.string().max(8000),
+        })
+        .passthrough()
     )
     .min(1)
     .max(100),
@@ -25,6 +28,9 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   try {
     const { chatId, messages } = await parseBody(req, bodySchema);
+    if (messages[messages.length - 1].role !== "user") {
+      throw new ApiError(400, "The last message must come from the user");
+    }
     const { userId, chat } = await requireOwnedChat(chatId);
     limitUser(userId, "chat", 20);
 
@@ -35,11 +41,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const stream = await streamAnswer({
-      messages: messages as any,
+    return await streamAnswer({
       chatId: chat.id,
+      messages: messages.map(({ role, content }) => ({ role, content })),
     });
-    return new StreamingTextResponse(stream);
   } catch (e) {
     return errorResponse(e, "Failed to answer");
   }

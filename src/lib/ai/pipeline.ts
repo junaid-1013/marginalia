@@ -1,8 +1,9 @@
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { WebPDFLoader } from "langchain/document_loaders/web/pdf";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { embed, embedMany } from "ai";
 
 import { db } from "@/lib/db";
+import { extractPdfPages } from "@/lib/ai/pdf";
+import { embeddingModel } from "@/lib/ai/provider";
+import { splitText } from "@/lib/ai/split-text";
 
 export const CHUNK_SIZE = 1000;
 export const CHUNK_OVERLAP = 100;
@@ -32,20 +33,18 @@ export const ingestChunks = async (chat: { id: string; pdfLink: string }) => {
   const blob = await downloadPdf(chat.pdfLink);
   if (!blob) throw new Error("Could not download the PDF");
 
-  const docs = await new WebPDFLoader(blob).load();
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: CHUNK_SIZE,
-    chunkOverlap: CHUNK_OVERLAP,
-  });
-  const split = await splitter.splitDocuments(docs);
+  const pages = await extractPdfPages(await blob.arrayBuffer());
 
-  const rows = split
-    .map((doc) => ({
-      // postgres text columns cannot contain NUL bytes
-      content: doc.pageContent.replace(/\u0000/g, "").trim(),
-      page: (doc.metadata?.loc?.pageNumber as number | undefined) ?? null,
-    }))
-    .filter((row) => row.content.length > 0)
+  // split page by page so every chunk keeps the page it came from
+  const rows = pages
+    .flatMap(({ page, text }) =>
+      splitText(
+        // postgres text columns cannot contain NUL bytes
+        text.replace(/\u0000/g, ""),
+        CHUNK_SIZE,
+        CHUNK_OVERLAP
+      ).map((content) => ({ content, page }))
+    )
     .map((row, index) => ({ ...row, index, chatId: chat.id }));
 
   if (rows.length === 0) {
@@ -71,6 +70,9 @@ export const getChunks = (chatId: string) =>
   db.chunk.findMany({ where: { chatId }, orderBy: { index: "asc" } });
 
 /** pgvector text format: '[0.1,0.2,...]' */
+export const embedQuery = async (text: string) =>
+  (await embed({ model: embeddingModel(), value: text })).embedding;
+
 export const toVectorLiteral = (vector: number[]) => `[${vector.join(",")}]`;
 
 /**
@@ -91,9 +93,10 @@ export const indexChunkBatch = async ({
   });
   if (chunks.length === 0) return 0;
 
-  const vectors = await new OpenAIEmbeddings().embedDocuments(
-    chunks.map((c) => c.content)
-  );
+  const { embeddings: vectors } = await embedMany({
+    model: embeddingModel(),
+    values: chunks.map((c) => c.content),
+  });
   const ids = chunks.map((c) => c.id);
   const literals = vectors.map(toVectorLiteral);
 

@@ -1,7 +1,5 @@
-import { OpenAIEmbeddings } from "@langchain/openai";
-
 import { db } from "@/lib/db";
-import { toVectorLiteral } from "@/lib/ai/pipeline";
+import { embedQuery, toVectorLiteral } from "@/lib/ai/pipeline";
 
 export interface IRetrievedChunk {
   id: string;
@@ -23,7 +21,7 @@ export const searchChunks = async ({
   query: string;
   k?: number;
 }): Promise<IRetrievedChunk[]> => {
-  const vector = toVectorLiteral(await new OpenAIEmbeddings().embedQuery(query));
+  const vector = toVectorLiteral(await embedQuery(query));
   return db.$queryRaw<IRetrievedChunk[]>`
     SELECT "id", "content", "page",
            1 - ("embedding" <=> ${vector}::vector) AS "score"

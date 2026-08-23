@@ -13,6 +13,21 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { type Message } from "ai";
 
+/** Pages the answer was based on, sent by the server as a message annotation. */
+const Sources = ({ annotations }: { annotations?: unknown[] }) => {
+  const sources = (annotations as { sources?: { page: number | null }[] }[] | undefined)
+    ?.find((a) => a?.sources)?.sources;
+  const pages = Array.from(
+    new Set((sources ?? []).map((s) => s.page).filter((p): p is number => !!p))
+  ).sort((a, b) => a - b);
+  if (pages.length === 0) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Sources: {pages.map((p) => `p. ${p}`).join(", ")}
+    </p>
+  );
+};
+
 type Props = {
   chat: Chat | null;
   initialMessages?: Message[];
@@ -23,11 +38,11 @@ const ChatCard = ({ chat, initialMessages }: Props) => {
     status: chat.status,
     summaryStatus: chat.summaryStatus,
     flashcardsStatus: chat.flashcardsStatus,
+    quizStatus: chat.quizStatus,
     processingError: chat.processingError,
   } : undefined);
-  const { messages, handleInputChange, handleSubmit, input } = useChat({
+  const { messages, handleInputChange, handleSubmit, input, error, status } = useChat({
     api: "/api/chat",
-    sendExtraMessageFields: true,
     // the server saves both sides of the conversation itself
     body: {
       chatId: chat?.id,
@@ -50,8 +65,19 @@ const ChatCard = ({ chat, initialMessages }: Props) => {
                 )}
               >
                 <Balancer>{message.content}</Balancer>
+                {message.role === "assistant" && (
+                  <Sources annotations={message.annotations} />
+                )}
               </div>
             ))}
+          {status === "submitted" && (
+            <p className="text-xs text-muted-foreground">Thinking...</p>
+          )}
+          {error && (
+            <p className="text-xs text-destructive">
+              Something went wrong. Please try again.
+            </p>
+          )}
         </div>
       </CardContent>
       <CardFooter className="sticky bottom-0 bg-background/75 backdrop-blur-md py-5">

@@ -5,6 +5,8 @@ type Events = {
   "document/uploaded": { data: { chatId: string } };
   "document/summarize": { data: { chatId: string } };
   "document/flashcards": { data: { chatId: string } };
+  /** on demand only (not part of the automatic fan out) */
+  "document/quiz": { data: { chatId: string } };
 };
 
 export const inngest = new Inngest({
