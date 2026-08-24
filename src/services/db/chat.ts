@@ -5,6 +5,7 @@
 import { Prisma, Role } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import { errorFields, logger } from "@/lib/logger";
 import { IFlashcard, ISummary } from "@/types";
 
 interface IProps {
@@ -44,7 +45,7 @@ export const getUserChats = async (userId: string) => {
       orderBy: { updatedAt: "desc" },
     });
   } catch (e) {
-    console.error("getUserChats failed", e);
+    logger.error("getUserChats failed", errorFields(e));
     return null;
   }
 };
@@ -54,7 +55,7 @@ export const getUserChat = async (chatId: string, userId: string) => {
   try {
     return await db.chat.findFirst({ where: { id: chatId, userId } });
   } catch (e) {
-    console.error("getUserChat failed", e);
+    logger.error("getUserChat failed", errorFields(e));
     return null;
   }
 };

@@ -1,3 +1,4 @@
+import GoogleButton from "@/components/auth/google-button";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -23,6 +24,7 @@ export default function Login() {
           </p>
         </div>
         <LoginForm />
+        <GoogleButton />
         <p className="text-center text-sm text-muted-foreground">
           <Link
             href="/create-account"

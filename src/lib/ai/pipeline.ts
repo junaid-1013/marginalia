@@ -1,9 +1,11 @@
 import { embed, embedMany } from "ai";
 
 import { db } from "@/lib/db";
+import { errorFields, logger } from "@/lib/logger";
 import { extractPdfPages } from "@/lib/ai/pdf";
 import { embeddingModel } from "@/lib/ai/provider";
 import { splitText } from "@/lib/ai/split-text";
+import { openPdf } from "@/lib/storage";
 
 export const CHUNK_SIZE = 1000;
 export const CHUNK_OVERLAP = 100;
@@ -13,13 +15,11 @@ export const EMBED_BATCH_SIZE = 100;
 
 export const downloadPdf = async (pdfLink: string) => {
   try {
-    const response = await fetch(pdfLink);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status}`);
-    }
-    return await response.blob();
+    const pdf = await openPdf(pdfLink);
+    if (!pdf) throw new Error("PDF not found in storage");
+    return await new Response(pdf.stream).blob();
   } catch (error) {
-    console.error("Error downloading PDF:", error);
+    logger.error("pdf download failed", errorFields(error));
     return null;
   }
 };

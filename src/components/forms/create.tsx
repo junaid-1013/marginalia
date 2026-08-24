@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import { FileWithPath, useDropzone } from "react-dropzone";
 import { Chat } from "@prisma/client";
 
@@ -35,7 +35,6 @@ import { initChatAPI } from "@/apis";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const CreateForm = () => {
-  const { data } = useSession();
   const router = useRouter();
 
   const [stateOfAlert, setStateOfAlert] = useState({
@@ -99,7 +98,12 @@ const CreateForm = () => {
   // METHODS
 
   async function onSubmit(values: z.infer<typeof CreateFormSchema>) {
-    const userId = data?.user?.id as string;
+    // read the session fresh: the upload path and the server check both depend on the user id
+    const userId = (await getSession())?.user?.id;
+    if (!userId) {
+      toast.error("Your session has expired. Please log in again.");
+      return;
+    }
     const uploaded = await mutateUploadFile({
       file: values.pdfFile[0],
       userId,

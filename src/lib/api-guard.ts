@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { getUserChat } from "@/services/db/chat";
+import { errorFields, logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/rate-limit";
 
 export class ApiError extends Error {
@@ -73,6 +74,6 @@ export const errorResponse = (e: unknown, fallback = "Something went wrong") => 
   if (e instanceof ApiError) {
     return Response.json({ error: e.message }, { status: e.status });
   }
-  console.error(e);
+  logger.error("unhandled route error", errorFields(e));
   return Response.json({ error: fallback }, { status: 500 });
 };

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import DeleteDocumentButton from "@/components/delete-document";
 
 const ChatsPage = async () => {
   const session = await auth();
@@ -20,7 +21,6 @@ const ChatsPage = async () => {
   if (session?.user?.id) {
     chats = await getUserChats(session.user.id);
   }
-  console.log("🚀 ~ ChatsPage ~ chats:", chats);
 
   return (
     <>
@@ -49,8 +49,9 @@ const ChatsPage = async () => {
           )}
           {chats &&
             chats.map((chat, i) => (
-              <Link key={chat.id} href={`/documents/${chat.id}/view`}>
-                <Card className="hover:bg-primary/5 transition-all">
+              <div key={chat.id} className="relative">
+              <Link href={`/documents/${chat.id}/view`}>
+                <Card className="hover:bg-primary/5 transition-all pr-8">
                   <CardHeader>
                     <CardTitle>
                       {chat.name.length > 30
@@ -63,6 +64,8 @@ const ChatsPage = async () => {
                   </CardHeader>
                 </Card>
               </Link>
+              <DeleteDocumentButton chatId={chat.id} name={chat.name} />
+              </div>
             ))}
         </div>
       </main>

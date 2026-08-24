@@ -91,7 +91,7 @@ model Flashcard {
   question String
   answer   String
   chatId   String
-  chat     Chat   @relation(fields: [chatId], references: [id])
+  chat     Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
 }
 
 model Message {
@@ -101,7 +101,7 @@ model Message {
   role      Role     @default(user)
   // pages the answer was based on: [{ page, snippet }]
   sources   Json?
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId    String
 
   @@index([chatId, createdAt])
@@ -128,7 +128,7 @@ model Summary {
   tldr          String
   mostUsedWords Word[]
   // one to one relation with chat  
-  chat          Chat?    @relation(fields: [chatId], references: [id])
+  chat          Chat?    @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId        String   @unique
 }
 

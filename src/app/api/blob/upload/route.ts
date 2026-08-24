@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 
 import { auth } from "@/auth";
+import { ApiError } from "@/lib/api-guard";
+import { errorFields, logger } from "@/lib/logger";
 
 const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -16,11 +18,11 @@ export async function POST(request: Request) {
         const session = await auth();
         const userId = session?.user?.id;
         if (!userId) {
-          throw new Error("Unauthorized");
+          throw new ApiError(401, "Please log in again");
         }
         // the client must upload into its own namespace, as a pdf
         if (!pathname.startsWith(`${userId}/`) || !pathname.endsWith(".pdf")) {
-          throw new Error("Invalid upload path");
+          throw new ApiError(400, "Invalid upload path");
         }
         return {
           allowedContentTypes: ["application/pdf"],
@@ -34,9 +36,11 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(jsonResponse);
   } catch (e) {
+    // the browser SDK only shows "Failed to retrieve the client token", so keep the reason in the server log
+    logger.error("blob upload token failed", errorFields(e));
     return NextResponse.json(
       { error: (e as Error).message },
-      { status: 400 }
+      { status: e instanceof ApiError ? e.status : 400 }
     );
   }
 }

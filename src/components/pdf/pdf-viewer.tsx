@@ -1,10 +1,24 @@
 "use client";
+
 interface IProps {
-  pdfLink: string | null;
+  chatId: string;
+  /** 1 based page to open, comes from a citation */
+  page?: number;
 }
-const PdfViewer = ({ pdfLink }: IProps) => {
-  if (!pdfLink) return null;
-  return <iframe src={pdfLink} width="100%" height="100%"></iframe>;
+
+const PdfViewer = ({ chatId, page }: IProps) => {
+  // the browser's built in viewer understands #page=N. Changing only the hash
+  // would not reload the frame, so the key remounts it for every page.
+  const src = `/api/documents/${chatId}/pdf${page ? `#page=${page}` : ""}`;
+  return (
+    <iframe
+      key={`${chatId}-${page ?? 0}`}
+      src={src}
+      title="Document"
+      width="100%"
+      height="100%"
+    />
+  );
 };
 
 export default PdfViewer;

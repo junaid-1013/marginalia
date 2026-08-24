@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { useChat } from "ai/react";
 import { SendIcon } from "lucide-react";
 import { type Chat } from "@prisma/client";
@@ -13,8 +14,15 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { type Message } from "ai";
 
-/** Pages the answer was based on, sent by the server as a message annotation. */
-const Sources = ({ annotations }: { annotations?: unknown[] }) => {
+/** Pages the answer was based on (sent by the server as a message annotation). Click to open them. */
+const Sources = ({
+  annotations,
+  chatId,
+}: {
+  annotations?: unknown[];
+  chatId: string;
+}) => {
+  const router = useRouter();
   const sources = (annotations as { sources?: { page: number | null }[] }[] | undefined)
     ?.find((a) => a?.sources)?.sources;
   const pages = Array.from(
@@ -22,9 +30,19 @@ const Sources = ({ annotations }: { annotations?: unknown[] }) => {
   ).sort((a, b) => a - b);
   if (pages.length === 0) return null;
   return (
-    <p className="text-xs text-muted-foreground">
-      Sources: {pages.map((p) => `p. ${p}`).join(", ")}
-    </p>
+    <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+      <span>Sources:</span>
+      {pages.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => router.push(`/documents/${chatId}/view?page=${p}`)}
+          className="rounded border px-1.5 py-0.5 hover:bg-primary/10 hover:text-foreground"
+        >
+          p. {p}
+        </button>
+      ))}
+    </div>
   );
 };
 
@@ -66,7 +84,7 @@ const ChatCard = ({ chat, initialMessages }: Props) => {
               >
                 <Balancer>{message.content}</Balancer>
                 {message.role === "assistant" && (
-                  <Sources annotations={message.annotations} />
+                  <Sources annotations={message.annotations} chatId={chat?.id ?? ""} />
                 )}
               </div>
             ))}

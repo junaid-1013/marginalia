@@ -1,5 +1,6 @@
 import { createDataStreamResponse, streamText } from "ai";
 
+import { errorFields, logger } from "@/lib/logger";
 import { chatModel } from "@/lib/ai/provider";
 import { formatChunksAsContext, searchChunks } from "@/lib/ai/retrieval";
 import { saveMessage } from "@/services/db/chat";
@@ -73,14 +74,14 @@ export const streamAnswer = async ({
               sources,
             });
           } catch (e) {
-            console.error("Failed to save assistant message", e);
+            logger.error("failed to save assistant message", { chatId, ...errorFields(e) });
           }
         },
       });
       result.mergeIntoDataStream(dataStream);
     },
     onError: (e) => {
-      console.error("Chat stream failed", e);
+      logger.error("chat stream failed", { chatId, ...errorFields(e) });
       return "Something went wrong while answering. Please try again.";
     },
   });

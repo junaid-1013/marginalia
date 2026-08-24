@@ -3,10 +3,6 @@ interface INotePOST {
   block: string;
 }
 export const NotePOST = async ({ chatId, block }: INotePOST) => {
-  // console.log(
-  //   { chatId, block },
-  //   "from note server action aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaAA"
-  // );
   try {
     const response = await fetch("/api/note", {
       method: "POST",
@@ -31,10 +27,6 @@ export const NoteGET = async ({ queryKey }: any) => {
       throw new Error("Failed to Get Note");
     }
     const note = await response.json();
-    // console.log(
-    //   note,
-    //   "from note get action AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaa"
-    // );
     return note;
   } catch (e) {
     console.error("Error while Getting Note", { e });

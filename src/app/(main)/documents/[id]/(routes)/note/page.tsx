@@ -15,7 +15,6 @@ const DocumentNotePage = () => {
   const [isDisabled, setIsDisabled] = useState(false);
 
   const { id } = useParams();
-  // console.log({ id }, "from note page");
   const notes = [];
 
   const { data: fetchedNoteString } = useQuery({
@@ -26,7 +25,6 @@ const DocumentNotePage = () => {
   const { mutateAsync: saveNoteToDB, data: savedNoteString } = useMutation({
     mutationFn: NotePOST,
     onSuccess: () => {
-      // console.log("GREEN CHECK icon here means COMPLETED SAVING NOTE 🚀");
     },
     onError: (e) => {
       console.error(e);
@@ -40,7 +38,6 @@ const DocumentNotePage = () => {
       return;
     }
     await saveNoteToDB({ chatId: id as string, block: storageString });
-    // console.log(storageString, "storageString");
   };
 
   // this is for the syncing in the local storage only but not in db

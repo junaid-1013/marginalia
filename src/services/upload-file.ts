@@ -1,6 +1,8 @@
 import { FileWithPath } from "react-dropzone";
 import { upload } from "@vercel/blob/client";
 
+import { BLOB_ACCESS } from "@/lib/blob-access";
+
 export interface IUploadedFile {
   url: string;
   pathname: string;
@@ -21,7 +23,7 @@ export const uploadFile = async ({
   // userId/uuid.pdf: unique per upload, and namespaced per user
   const pathname = `${userId}/${crypto.randomUUID()}.pdf`;
   const blob = await upload(pathname, file, {
-    access: "public",
+    access: BLOB_ACCESS,
     contentType: "application/pdf",
     handleUploadUrl: "/api/blob/upload",
   });
