@@ -1,18 +1,24 @@
 import "@/styles/globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SessionProvider } from "next-auth/react";
-import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Provider as BalancerProvider } from "react-wrap-balancer";
 
+import { display, sans } from "@/lib/fonts";
 import { ThemeProvider, ReactQueryProvider } from "@/providers";
 
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "InnovatED",
+  title: { default: "Marginalia", template: "%s | Marginalia" },
   description:
-    "AI SAAS Application for the students to summarize and interact with thier documents",
+    "Dense texts, decoded into active recall. Upload a PDF, ask it questions, and study from summaries, flashcards and quizzes with page citations.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4F2EC" },
+    { media: "(prefers-color-scheme: dark)", color: "#10171E" },
+  ],
 };
 
 export default function RootLayout({
@@ -21,8 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable}`}
+    >
+      <body className="font-sans antialiased">
         <SessionProvider>
           <ReactQueryProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

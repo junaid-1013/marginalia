@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <style>
+    .page { stroke: #1B2A41; }
+    .rule { stroke: #1B2A41; opacity: .45; }
+    .line { stroke: #1B2A41; }
+    .mark { fill: #F2B134; }
+    @media (prefers-color-scheme: dark) {
+      .page, .rule, .line { stroke: #E9E5DA; }
+    }
+  </style>
+  <rect class="page" x="6.5" y="3.5" width="21" height="25" rx="3" stroke-width="2"/>
+  <path class="rule" d="M13 3.5v25" stroke-width="1.5"/>
+  <rect class="mark" x="3" y="10" width="7.5" height="4" rx="1.2"/>
+  <path class="line" d="M17 11h7M17 16h7M17 21h4.5" stroke-width="2" stroke-linecap="round"/>
+</svg>

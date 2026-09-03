@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { useParams } from "next/navigation";
@@ -33,11 +34,8 @@ const Header = () => {
           )}
         >
           <div className="flex">
-            <Link
-              href="/documents"
-              className={cn(buttonVariants({ variant: "link" }))}
-            >
-              Home
+            <Link href="/documents" aria-label="Marginalia, all documents">
+              <Logo />
             </Link>
             {/* <Link
               href="/notes"

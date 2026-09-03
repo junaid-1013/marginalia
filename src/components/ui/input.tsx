@@ -45,9 +45,9 @@ const StatusIcon = ({ status }: IStatus) => {
     <div
       className={cn(
         "absolute top-1/2 -translate-y-1/2 right-0 items-center pr-3  pointer-events-none flex",
-        status === "success" && "!text-green-500",
+        status === "success" && "!text-success",
         status === "error" && "!text-destructive",
-        status === "warning" && "!text-yellow-500"
+        status === "warning" && "!text-highlight-ink"
       )}
     >
       {icon}
@@ -78,9 +78,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "absolute inset-y-0 left-0 flex items-center px-3 pointer-events-none space-x-3 transition-all duration-200 ease-in-out",
               isFocus && "text-primary",
-              status === "success" && "!text-green-500",
+              status === "success" && "!text-success",
               status === "error" && "!text-destructive",
-              status === "warning" && "!text-yellow-500",
+              status === "warning" && "!text-highlight-ink",
               suffixIconClassName
             )}
           >
@@ -89,9 +89,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               className={cn(
                 "h-3/5 w-[1px] bg-foreground",
                 isFocus && "bg-primary transition-all duration-200 ease-in-out",
-                status === "success" && "bg-green-500",
+                status === "success" && "bg-success",
                 status === "error" && "bg-destructive",
-                status === "warning" && "bg-yellow-500",
+                status === "warning" && "bg-highlight",
                 separatorClassName,
                 !separator && "hidden"
               )}
@@ -101,12 +101,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "flex h-10  w-full rounded-md border border-input focus:border-primary bg-background p-3 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 w-full rounded-md border border-input bg-sunken px-3 py-2 font-sans text-sm transition-colors duration-150 focus:border-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
             suffixIcon && separator && "pl-[53px]",
             suffixIcon && !separator && "pl-10",
-            status === "success" && "border-green-500",
+            status === "success" && "border-success",
             status === "error" && "border-destructive",
-            status === "warning" && "border-yellow-500",
+            status === "warning" && "border-highlight",
             className
           )}
           ref={ref}

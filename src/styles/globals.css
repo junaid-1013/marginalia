@@ -2,50 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Marginalia design tokens.
+  Surfaces are paper (the page), raised (a sheet on the page) and sunken (a
+  well you write into). Ink is text. The highlighter is the only loud color.
+  Depth comes from tone and hairlines, not shadows.
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 1rem;
+    --background: 45 27% 94%; /* paper */
+    --foreground: 216 41% 18%; /* ink */
+    --card: 48 38% 97.5%; /* raised sheet */
+    --card-foreground: 216 41% 18%;
+    --popover: 48 38% 98%;
+    --popover-foreground: 216 41% 18%;
+    --primary: 216 41% 18%;
+    --primary-foreground: 48 38% 97%;
+    --secondary: 44 22% 90%;
+    --secondary-foreground: 216 41% 18%;
+    --muted: 44 22% 90%;
+    --muted-foreground: 220 11% 40%; /* graphite */
+    --accent: 42 85% 88%; /* highlighter wash: hover and selection */
+    --accent-foreground: 216 41% 18%;
+    --destructive: 5 62% 40%;
+    --destructive-foreground: 48 38% 97%;
+    --border: 42 14% 82%;
+    --input: 42 14% 78%;
+    --ring: 216 41% 18%;
+    --radius: 0.625rem;
+
+    --sunken: 44 22% 91%; /* inputs and wells */
+    --ink-soft: 217 22% 32%; /* secondary text */
+    --highlight: 40 88% 58%; /* highlighter */
+    --highlight-wash: 42 92% 78%;
+    --highlight-ink: 38 100% 26%; /* highlighter color that is readable as text */
+    --margin-rule: 2 50% 62%; /* the red line of a ruled notebook */
+    --success: 156 40% 26%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 218 30% 9%; /* midnight ink */
+    --foreground: 43 25% 90%; /* paper as text */
+    --card: 218 28% 12%;
+    --card-foreground: 43 25% 90%;
+    --popover: 218 28% 14%;
+    --popover-foreground: 43 25% 90%;
+    --primary: 43 25% 90%;
+    --primary-foreground: 218 30% 9%;
+    --secondary: 218 24% 16%;
+    --secondary-foreground: 43 25% 90%;
+    --muted: 218 24% 16%;
+    --muted-foreground: 40 9% 64%;
+    --accent: 40 40% 20%;
+    --accent-foreground: 43 25% 92%;
+    --destructive: 5 58% 52%;
+    --destructive-foreground: 43 25% 96%;
+    --border: 218 20% 21%;
+    --input: 218 20% 26%;
+    --ring: 43 25% 90%;
+
+    --sunken: 218 30% 7%;
+    --ink-soft: 43 12% 74%;
+    --highlight: 40 85% 60%; /* lamplight */
+    --highlight-wash: 40 50% 24%;
+    --highlight-ink: 42 85% 68%;
+    --margin-rule: 2 45% 48%;
+    --success: 152 35% 54%;
   }
 }
 
@@ -53,58 +75,118 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "kern", "liga";
   }
-}
-
-@layer components {
-  h1 {
-    @apply font-display text-[56px] font-semibold leading-[64px] tracking-[0%];
-  }
-  h2 {
-    @apply font-display text-[40px] font-semibold leading-[48px] tracking-[0%];
-  }
-  h3 {
-    @apply font-display text-[38px] font-semibold leading-[48px] tracking-[-0.75%];
-  }
+  h1,
+  h2,
+  h3,
   h4 {
-    @apply font-display text-[32px] font-semibold leading-[40px] tracking-[-0.2%];
+    @apply font-display;
+    text-wrap: balance;
+    font-optical-sizing: auto;
   }
-  h5 {
-    @apply font-sans text-[16px] font-bold uppercase leading-[20px] tracking-[5%];
+  p {
+    text-wrap: pretty;
   }
-  h6 {
-    @apply font-sans text-[14px] font-semibold  uppercase leading-[16px] tracking-[5%];
+  ::selection {
+    background: hsl(var(--highlight-wash));
+    color: hsl(var(--foreground));
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-/* Base theme */
-.bn-container[data-theming-css-variables-demo][data-color-scheme] {
-  --bn-colors-editor-text: var(--foreground);
-  --bn-colors-editor-background: var(--background);
-  /* --bn-colors-menu-text: var(--foreground);
-  --bn-colors-menu-background: var(--secondary);
-  --bn-colors-tooltip-text: var(--foreground);
-  --bn-colors-tooltip-background: var(--popover);
-  --bn-colors-hovered-text: var(--foreground);
-  --bn-colors-hovered-background: var(--secondary);
-  --bn-colors-selected-text: var(--primary-foreground);
-  --bn-colors-selected-background: var(--primary);
-  --bn-colors-disabled-text: var(--foreground);
-  --bn-colors-disabled-background: var(--muted);
-  --bn-colors-shadow: var(--border);
-  --bn-colors-border: var(--border);
-  --bn-colors-side-menu: var(--muted);
-  --bn-colors-highlight-colors: var(--foreground);
-  --bn-border-radius: var(--radius);
-  --bn-font-family: "Inter", sans-serif; Assuming 'Inter' is your primary font */
-}
+/*
+  Type scale, ratio ~1.25 on a 16px body. Serif is for headings and reading,
+  sans is for controls and metadata. Weight and color carry hierarchy as much
+  as size does.
+*/
+@layer components {
+  .text-display {
+    @apply font-display font-medium text-foreground;
+    font-size: clamp(2.75rem, 1.5rem + 5.2vw, 4.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+    text-wrap: balance;
+  }
+  .text-title {
+    @apply font-display font-medium text-foreground;
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    letter-spacing: -0.018em;
+  }
+  .text-heading {
+    @apply font-display font-semibold text-foreground;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    letter-spacing: -0.01em;
+  }
+  .text-lead {
+    @apply font-display text-ink-soft;
+    font-size: 1.25rem;
+    line-height: 1.85rem;
+  }
+  .text-reading {
+    @apply font-display text-foreground;
+    font-size: 1.0625rem;
+    line-height: 1.75rem;
+  }
+  .text-ui {
+    @apply font-sans text-sm text-foreground;
+    line-height: 1.25rem;
+  }
+  .text-caption {
+    @apply font-sans text-muted-foreground font-medium;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    letter-spacing: 0.005em;
+  }
 
-/* Changes for dark mode */
-.bn-container[data-theming-css-variables-demo][data-color-scheme="dark"] {
-  --bn-colors-editor-text: var(--foreground);
-  --bn-colors-editor-background: var(--background);
-  /* --bn-colors-side-menu: var(--background); */
-  /* Adjust dark mode variables as needed */
+  /* the highlighter: a marker wash across the lower part of the text */
+  .mark-hl {
+    background-image: linear-gradient(
+      transparent 38%,
+      hsl(var(--highlight-wash)) 38%,
+      hsl(var(--highlight-wash)) 90%,
+      transparent 90%
+    );
+    padding: 0 0.12em;
+    margin: 0 -0.12em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* the red line of a ruled page, drawn at --margin-x from the left edge */
+  .margin-rule {
+    position: relative;
+  }
+  .margin-rule::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: var(--margin-x, 3.5rem);
+    width: 1px;
+    background: hsl(var(--margin-rule) / 0.4);
+    pointer-events: none;
+  }
 }

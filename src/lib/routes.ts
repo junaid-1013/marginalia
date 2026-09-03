@@ -2,7 +2,8 @@
  * These are the routes that are public and do not require authentication.
  * @type {string[]}
  */
-export const publicRoutes: string[] = ["/"];
+export const publicRoutes: string[] =
+  process.env.NODE_ENV === "production" ? ["/"] : ["/", "/design"];
 
 /**
  * An array of routes that are used for authentication.

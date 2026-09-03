@@ -56,7 +56,11 @@ export default function LoginForm() {
   return (
     <div className="grid gap-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+        <form
+          method="post"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="grid gap-5"
+        >
           <FormField
             control={form.control}
             name="name"

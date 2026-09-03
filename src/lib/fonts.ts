@@ -1,14 +1,20 @@
-import { DM_Sans, Inter } from "next/font/google";
+import { Hanken_Grotesk, Newsreader } from "next/font/google";
 
-export const inter = Inter({
+// Newsreader is drawn for reading on screens and has an optical size axis, so
+// large headings tighten up by themselves. Hanken Grotesk carries the UI.
+export const display = Newsreader({
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-display",
+  fallback: ["Georgia", "Times New Roman", "serif"],
+  // next/font has no metrics for this family, so skip the (failing) fallback adjustment
+  adjustFontFallback: false,
 });
 
-export const dm_sans = DM_Sans({
-  weight: ["400", "500", "700"],
+export const sans = Hanken_Grotesk({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-dm-sans",
+  variable: "--font-sans",
 });
