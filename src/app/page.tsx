@@ -1,45 +1,43 @@
-import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import type { Metadata } from "next";
 
-export default function Home() {
+import { auth } from "@/auth";
+import { Demo } from "@/components/landing/demo/demo";
+import { LandingNav } from "@/components/landing/nav";
+import {
+  Faq,
+  Features,
+  FinalCta,
+  Footer,
+  Hero,
+  HowItWorks,
+  Trust,
+} from "@/components/landing/sections";
+
+export const metadata: Metadata = {
+  title: { absolute: "Marginalia: dense texts, decoded into active recall" },
+  description:
+    "Upload a PDF, ask it questions, and study from summaries, flashcards and quizzes. Every answer points to the page it came from.",
+};
+
+export default async function Home() {
+  const session = await auth();
+  const loggedIn = !!session?.user;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="flex flex-col items-center justify-center">
-        <h1 className="text-6xl font-bold text-center">
-          AI Chatbot for your documents
-        </h1>
-        <p className="text-xl text-center">
-          A chatbot that can answer your questions about your documents
-        </p>
-      </div>
-      <div className="flex flex-col space-y-10">
-        <Link
-          href="/documents"
-          className={buttonVariants({
-            variant: "default",
-          })}
-        >
-          Documents
-        </Link>
-      </div>
-      <div className="flex gap-5">
-        <Link
-          className={buttonVariants({
-            variant: "outline",
-          })}
-          href="/login"
-        >
-          Login
-        </Link>
-        <Link
-          className={buttonVariants({
-            variant: "outline",
-          })}
-          href="/create-account"
-        >
-          Create Account
-        </Link>
-      </div>
-    </main>
+    <div className="min-h-screen bg-background">
+      <LandingNav loggedIn={loggedIn} />
+      <main>
+        <Hero loggedIn={loggedIn} />
+        <div className="container max-w-6xl pb-16 md:pb-24">
+          <Demo />
+        </div>
+        <HowItWorks />
+        <Features />
+        <Trust />
+        <Faq />
+        <FinalCta loggedIn={loggedIn} />
+      </main>
+      <Footer />
+    </div>
   );
 }

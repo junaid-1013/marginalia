@@ -6,6 +6,16 @@ export const publicRoutes: string[] =
   process.env.NODE_ENV === "production" ? ["/"] : ["/", "/design"];
 
 /**
+ * Generated metadata images (link previews, home screen icon) must load
+ * without a session, or crawlers get redirected to the login page.
+ */
+export const publicPrefixes: string[] = [
+  "/opengraph-image",
+  "/twitter-image",
+  "/apple-icon",
+];
+
+/**
  * An array of routes that are used for authentication.
  * These routes do not required authentication.
  * @type {string[]}

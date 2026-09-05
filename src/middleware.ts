@@ -7,6 +7,7 @@ import {
   DEFAULT_REDIRECT_URL,
   apiAuthPrefix,
   authRoutes,
+  publicPrefixes,
   publicRoutes,
 } from "@/lib/routes";
 
@@ -17,7 +18,9 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+  const isPublicRoute =
+    publicRoutes.includes(nextUrl.pathname) ||
+    publicPrefixes.some((prefix) => nextUrl.pathname.startsWith(prefix));
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
   // Inngest calls this server-to-server, it is verified with INNGEST_SIGNING_KEY

@@ -1,0 +1,45 @@
+import Link from "next/link";
+
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { ThemeToggler } from "@/components/ui/theme-toggler";
+
+const links = [
+  { href: "#how", label: "How it works" },
+  { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
+];
+
+export const LandingNav = ({ loggedIn }: { loggedIn: boolean }) => (
+  <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
+    <div className="container flex h-16 max-w-6xl items-center justify-between gap-4">
+      <Link href="/" aria-label="Marginalia home">
+        <Logo />
+      </Link>
+      <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
+        {links.map((l) => (
+          <Button key={l.href} asChild variant="ghost" size="sm">
+            <a href={l.href}>{l.label}</a>
+          </Button>
+        ))}
+      </nav>
+      <div className="flex items-center gap-2">
+        <ThemeToggler />
+        {loggedIn ? (
+          <Button asChild size="sm">
+            <Link href="/documents">Open app</Link>
+          </Button>
+        ) : (
+          <>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/create-account">Get started</Link>
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  </header>
+);

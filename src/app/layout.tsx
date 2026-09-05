@@ -5,13 +5,21 @@ import { Toaster } from "@/components/ui/sonner";
 import { Provider as BalancerProvider } from "react-wrap-balancer";
 
 import { display, sans } from "@/lib/fonts";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 import { ThemeProvider, ReactQueryProvider } from "@/providers";
 
 
 export const metadata: Metadata = {
-  title: { default: "Marginalia", template: "%s | Marginalia" },
-  description:
-    "Dense texts, decoded into active recall. Upload a PDF, ask it questions, and study from summaries, flashcards and quizzes with page citations.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME}: ${SITE_TAGLINE.toLowerCase().replace(/\.$/, "")}`, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
