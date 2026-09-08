@@ -1,66 +1,67 @@
 "use client";
-import { signOut, useSession } from "next-auth/react";
+
+import Link from "next/link";
+import { signOut } from "next-auth/react";
+import { LogOutIcon, LibraryIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function UserNav() {
-  const session = useSession();
+export interface IHeaderUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
+
+const initials = ({ name, email }: IHeaderUser) => {
+  const source = name?.trim() || email?.trim() || "?";
+  const parts = source.split(/[\s@._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+};
+
+export function UserNav({ user }: { user: IHeaderUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-            <AvatarFallback>SC</AvatarFallback>
+        <Button
+          variant="ghost"
+          className="h-9 w-9 rounded-full p-0"
+          aria-label={`Account menu for ${user.name || user.email || "your account"}`}
+        >
+          <Avatar className="h-8 w-8">
+            {user.image && <AvatarImage src={user.image} alt="" />}
+            <AvatarFallback className="bg-secondary font-sans text-xs font-semibold text-secondary-foreground">
+              {initials(user)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-60" align="end">
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">
-              {session?.data?.user?.name}
-            </p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {session?.data?.user?.email}
-            </p>
-          </div>
+          <p className="truncate text-sm font-medium">{user.name || "Your account"}</p>
+          {user.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {/* <DropdownMenuGroup>
-          <DropdownMenuItem>
-            Profile
-            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            Billing
-            <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            Settings
-            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        </DropdownMenuGroup> */}
-        {/* <DropdownMenuSeparator /> */}
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/documents">
+            <LibraryIcon className="mr-2 h-4 w-4" />
+            Your documents
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"
-          onClick={async () => {
-            await signOut();
-          }}
+          onSelect={() => signOut({ callbackUrl: "/" })}
         >
+          <LogOutIcon className="mr-2 h-4 w-4" />
           Log out
-          {/* <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut> */}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

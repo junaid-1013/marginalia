@@ -1,210 +1,125 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import * as z from "zod";
-import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 
+import { login } from "@/actions/auth/login";
+import { signup } from "@/actions/auth/signup";
+import { FormError } from "@/components/auth/form-error";
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Input, PasswordInput } from "@/components/ui/input";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
+import { Input, PasswordInput } from "@/components/ui/input";
 import { createAccountSchema } from "@/schemas/auth";
-import { signup } from "@/actions/auth/signup";
 
-type createAccountFormData = z.infer<typeof createAccountSchema>;
+type CreateAccountFormData = z.infer<typeof createAccountSchema>;
 
-export default function LoginForm() {
-  const [isLoading, setTransition] = useTransition();
+export default function CreateAccountForm() {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
-  const form = useForm<createAccountFormData>({
+  const form = useForm<CreateAccountFormData>({
     resolver: zodResolver(createAccountSchema),
     mode: "onSubmit",
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { name: "", email: "", password: "" },
   });
 
-  function onSubmit(values: createAccountFormData) {
-    setTransition(async () => {
-      const response = await signup(values);
-      if (response.error) {
-        toast.error(response.error);
-        form.reset();
+  function onSubmit(values: CreateAccountFormData) {
+    setError(null);
+    startTransition(async () => {
+      const created = await signup(values);
+      if (created.error) {
+        setError(created.error);
         return;
       }
-      if (response.success) {
-        toast.success(response.success);
-        form.reset();
-        return;
-      }
+      // sign the new account straight in: the server action redirects to the app
+      const session = await login({ email: values.email, password: values.password });
+      if (session?.error) setError(session.error);
     });
   }
 
   return (
-    <div className="grid gap-6">
-      <Form {...form}>
-        <form
-          method="post"
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="grid gap-5"
-        >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="name">Name</FormLabel>
-                <FormControl>
-                  <Input
-                    id="name"
-                    placeholder="Your name"
-                    type="text"
-                    autoCapitalize="none"
-                    autoComplete="name"
-                    autoCorrect="off"
-                    disabled={isLoading}
-                    className="p-5"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="email">Email address</FormLabel>
-                <FormControl>
-                  <Input
-                    id="email"
-                    placeholder="name@example.com"
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    autoCorrect="off"
-                    disabled={isLoading}
-                    className="p-5"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="password">Password</FormLabel>
-                <FormControl>
-                  <PasswordInput
-                    id="password"
-                    placeholder="Enter your password"
-                    disabled={isLoading}
-                    className="p-5"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="confirmPassword">
-                  Confirm Password
-                </FormLabel>
-                <FormControl>
-                  <PasswordInput
-                    id="confirmPassword"
-                    placeholder="Confirm your password"
-                    disabled={isLoading}
-                    className="p-5"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button
-            className="p-5"
-            type="submit"
-            disabled={
-              Object.keys(form.formState.errors).length > 0 || isLoading
-            }
-          >
-            {isLoading && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Create account
-          </Button>
-        </form>
-      </Form>
-      {/* seperator */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-background px-2 text-muted-foreground">
-            OR CONTINUE WITH
-          </span>
-        </div>
-      </div>
-
-      {/* buttons */}
-      <div className="grid gap-2 md:grid-cols-2">
-        <Button
-          className="p-5"
-          variant="outline"
-          type="button"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.google className="mr-2 h-4 w-4" />
-          )}{" "}
-          Login with Google
+    <Form {...form}>
+      {/* method="post": credentials must never end up in the URL, even if this submits before hydration */}
+      <form method="post" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+        <FormError message={error} />
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="name">Name</FormLabel>
+              <FormControl>
+                <Input
+                  id="name"
+                  placeholder="Your name"
+                  autoComplete="name"
+                  autoFocus
+                  disabled={isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="email">Email address</FormLabel>
+              <FormControl>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  disabled={isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor="password">Password</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  id="password"
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  disabled={isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>Use the eye icon to check what you typed.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button className="mt-1 w-full" size="lg" type="submit" disabled={isPending}>
+          {isPending && <Icons.spinner className="h-4 w-4 animate-spin" />}
+          {isPending ? "Creating your account" : "Create account"}
         </Button>
-        <Button
-          className="p-5"
-          variant="outline"
-          type="button"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Icons.apple className="mr-2 h-4 w-4" />
-          )}{" "}
-          Login with Apple
-        </Button>
-      </div>
-    </div>
+      </form>
+    </Form>
   );
 }

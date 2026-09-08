@@ -11,9 +11,9 @@ type IProps = {
 
 const DocumentIdLayout: React.FC<IProps> = ({ children, params }) => {
   return (
-    <div className="flex max-h-[calc(100vh-81px)] min-h-[calc(100vh-81px)] h-full">
+    <div className="flex max-h-[calc(100vh-65px)] min-h-[calc(100vh-65px)] h-full">
       <SideNav params={params} />
-      <div className="flex-1 w-2/3 max-h-[calc(100vh-81px)] min-h-[calc(100vh-81px)] overflow-y-auto">
+      <div className="flex-1 w-2/3 max-h-[calc(100vh-65px)] min-h-[calc(100vh-65px)] overflow-y-auto">
         <DocumentStatus chatId={params.id} />
         {children}
       </div>

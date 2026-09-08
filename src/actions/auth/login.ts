@@ -12,7 +12,7 @@ type TFormDataType = z.infer<typeof loginSchema>;
 export const login = async (values: TFormDataType) => {
   const validateFields = loginSchema.safeParse(values);
   if (!validateFields.success) {
-    return { error: "Invalid Fields" };
+    return { error: "Enter a valid email and a password of at least 8 characters." };
   }
   const { email, password } = validateFields.data;
 
@@ -25,9 +25,9 @@ export const login = async (values: TFormDataType) => {
   } catch (e) {
     if (e instanceof AuthError) {
       if (e.type === "CredentialsSignin") {
-        return { error: "Invalid Credentials" };
+        return { error: "The email or password is incorrect." };
       } else {
-        return { error: "An error occurred" };
+        return { error: "Something went wrong. Try again in a moment." };
       }
     }
     throw e;

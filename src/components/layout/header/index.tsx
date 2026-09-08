@@ -1,70 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon } from "lucide-react";
-
-import { Button, buttonVariants } from "../../ui/button";
-import { Input } from "../../ui/input";
-import { ThemeToggler } from "@/components/ui/theme-toggler";
-import { UserNav } from "./user-nav";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Logo } from "@/components/logo";
-import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
-import { useParams } from "next/navigation";
 
-const Header = () => {
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { ThemeToggler } from "@/components/ui/theme-toggler";
+import { cn } from "@/lib/utils";
+import { UserNav, type IHeaderUser } from "./user-nav";
+
+export const HEADER_HEIGHT = "4rem";
+
+const Header = ({ user }: { user: IHeaderUser }) => {
   const pathname = usePathname();
-  const params = useParams();
-  // detect if the path is something like /documents/[id]/* but not /documents, in boolean but not matched object
-  const isDocumentIdPage = /\/documents\/[^/]+\/.*/.test(pathname);
+  // the document workspace uses the full width, other pages sit in the container
+  const isWorkspace = /^\/documents\/[^/]+\//.test(pathname) && pathname !== "/documents/create";
+  const onDocuments = pathname.startsWith("/documents");
 
   return (
-    <div className="bg-background/75 backdrop-blur-lg border-b border-b-muted shadow-sm sticky top-0 left-0 w-full z-50">
-      <TooltipProvider>
-        <header
-          className={cn(
-            "flex justify-between py-4 px-8 h-20 items-center sticky top-0 z-50",
-            isDocumentIdPage ? "mx-auto px-5" : "container"
-          )}
-        >
-          <div className="flex">
-            <Link href="/documents" aria-label="Marginalia, all documents">
-              <Logo />
-            </Link>
-            {/* <Link
-              href="/notes"
-              className={cn(buttonVariants({ variant: "link" }))}
+    <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur">
+      <div
+        className={cn(
+          "flex h-16 items-center justify-between gap-4",
+          isWorkspace ? "px-4 sm:px-5" : "container"
+        )}
+      >
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Link href="/documents" aria-label="Marginalia, all documents" className="rounded-md">
+            <Logo />
+          </Link>
+          <nav aria-label="Main" className="ml-2 hidden sm:block">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className={cn(onDocuments && "bg-accent/60")}
             >
-              Notes
-            </Link> */}
-          </div>
-          {/* document title */}
-          <div className="flex items-center space-x-2">
-            <Input
-              className="w-72"
-              placeholder="Search for course, lesson, etc"
-              suffixIcon={<SearchIcon size={16} />}
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ThemeToggler />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Toggle Theme</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <UserNav />
-          </div>
-        </header>
-      </TooltipProvider>
-    </div>
+              <Link href="/documents" aria-current={onDocuments ? "page" : undefined}>
+                Documents
+              </Link>
+            </Button>
+          </nav>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ThemeToggler />
+          <UserNav user={user} />
+        </div>
+      </div>
+    </header>
   );
 };
 
