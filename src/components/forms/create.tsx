@@ -1,251 +1,222 @@
 "use client";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
-import { FileWithPath, useDropzone } from "react-dropzone";
-import { Chat } from "@prisma/client";
-
-import {
-  FileIcon,
-  LoaderIcon,
-  CrossIcon,
-  SmileIcon,
-  UploadCloudIcon,
-} from "lucide-react";
+import { useDropzone, type FileRejection } from "react-dropzone";
+import { AlertTriangleIcon, FileTextIcon, UploadCloudIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 
+import { initChatAPI } from "@/apis";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { CreateFormSchema } from "@/schemas/form/create";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { uploadFile } from "@/services/upload-file";
-import { initChatAPI } from "@/apis";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-const CreateForm = () => {
+const MAX_MB = 20;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+type Phase = "idle" | "uploading" | "creating";
+
+interface IProps {
+  /** the account already holds the maximum number of documents */
+  atLimit?: boolean;
+  limit?: number;
+}
+
+const readableSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+// "Cell-biology_week_4.pdf" -> "Cell biology week 4"
+const titleFromFileName = (name: string) =>
+  name.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+
+const rejectionMessage = (rejection: FileRejection) => {
+  const code = rejection.errors[0]?.code;
+  if (code === "file-too-large") {
+    return `That file is ${readableSize(rejection.file.size)}. The limit is ${MAX_MB} MB.`;
+  }
+  if (code === "file-invalid-type") return "Only PDF files are supported.";
+  if (code === "too-many-files") return "Add one file at a time.";
+  return "That file could not be added. Try another PDF.";
+};
+
+const CreateForm = ({ atLimit = false, limit }: IProps) => {
   const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [progress, setProgress] = useState(0);
 
-  const [stateOfAlert, setStateOfAlert] = useState({
-    variant: "default",
-    title: "HEY THERE!",
-    description: "Upload your PDF file to get started",
-  });
+  const busy = phase !== "idle";
 
-  // MUTATIONS
-
-  // 1. upload file to the bucket
-  const {
-    mutateAsync: mutateUploadFile,
-    isPending: uploadFileIsPending,
-    isError: uploadFileIsError,
-  } = useMutation({
-    mutationFn: uploadFile,
-
-    onError: (error) => {
-      toast.error("Failed to upload file");
-    },
-    onSuccess: (data) => {
-      toast.success("File uploaded successfully");
-    },
-  });
-  // 2. getting the file reference and adding to the database
-  const {
-    mutateAsync: mutateInitChat,
-    isPending: initChatIsPending,
-    isError: initChatIsError,
-  } = useMutation({
-    mutationFn: initChatAPI,
-
-    onError: (error) => {
-      toast.error(error.message);
-    },
-    onSuccess: async (data) => {
-      toast.success("Document uploaded. Processing continues in the background.");
-      router.push(`/documents/${data.chat.id}/view`);
-    },
-  });
-  //
-  const form = useForm<z.infer<typeof CreateFormSchema>>({
-    resolver: zodResolver(CreateFormSchema),
-    mode: "onBlur",
-    defaultValues: {
-      title: "",
-    },
-  });
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      "application/pdf": [".pdf"],
-    },
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    accept: { "application/pdf": [".pdf"] },
+    maxSize: MAX_BYTES,
     multiple: false,
-    onDrop: (acceptedFiles: FileWithPath[]) => {
-      // Update the type of acceptedFiles to be an array
-      form.setValue("pdfFile", acceptedFiles);
+    disabled: busy || atLimit,
+    noClick: !!file, // with a file chosen the area is a summary, "Replace" opens the picker
+    onDropAccepted: ([accepted]) => {
+      setFile(accepted);
+      setFileError(null);
+      setFormError(null);
+      // suggest a title from the file name until the person writes their own
+      if (!titleTouched) setTitle(titleFromFileName(accepted.name));
     },
+    onDropRejected: ([rejection]) => setFileError(rejectionMessage(rejection)),
   });
 
-  // METHODS
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setTitleError(null);
 
-  async function onSubmit(values: z.infer<typeof CreateFormSchema>) {
+    const name = title.trim();
+    if (!file) return setFileError("Choose a PDF to upload.");
+    if (name.length < 2) return setTitleError("Give the document a title of at least 2 characters.");
+
     // read the session fresh: the upload path and the server check both depend on the user id
     const userId = (await getSession())?.user?.id;
-    if (!userId) {
-      toast.error("Your session has expired. Please log in again.");
-      return;
+    if (!userId) return setFormError("Your session has expired. Log in again to continue.");
+
+    try {
+      setPhase("uploading");
+      setProgress(0);
+      const uploaded = await uploadFile({ file, userId, onProgress: setProgress });
+
+      setPhase("creating");
+      const { chat } = await initChatAPI({
+        name,
+        pdfStoragePath: uploaded.pathname,
+        pdfLink: uploaded.url,
+      });
+
+      toast.success("Document added. Marginalia is reading it now.");
+      router.push(`/documents/${chat.id}/view`);
+    } catch (error) {
+      setPhase("idle");
+      const message = error instanceof Error ? error.message : "";
+      if (/already have a document/i.test(message)) {
+        setTitleError("You already have a document with this title. Choose another one.");
+      } else {
+        setFormError(message || "The upload did not finish. Check your connection and try again.");
+      }
     }
-    const uploaded = await mutateUploadFile({
-      file: values.pdfFile[0],
-      userId,
-    });
-
-    const chatConfig = {
-      name: values.title,
-      pdfStoragePath: uploaded.pathname,
-      pdfLink: uploaded.url,
-    };
-    await mutateInitChat(chatConfig);
-
-  }
-
-  useEffect(() => {
-    if (uploadFileIsError || initChatIsError) {
-      setStateOfAlert({
-        variant: "destructive",
-        title: "Oops!",
-        description: uploadFileIsError
-          ? "Failed to upload file"
-          : "Failed to initialize chat",
-      });
-    } else if (uploadFileIsPending || initChatIsPending) {
-      setStateOfAlert({
-        variant: "pending",
-        title: uploadFileIsPending ? "Uploading file" : "Creating document",
-        description: uploadFileIsPending
-          ? "Please wait while we upload your file"
-          : "Almost done, processing starts in the background",
-      });
-    } else {
-      setStateOfAlert({
-        variant: "default",
-        title: "HEY THERE!",
-        description: "Upload your PDF file to get started",
-      });
-    }
-  }, [
-    uploadFileIsPending,
-    uploadFileIsError,
-    initChatIsPending,
-    initChatIsError,
-  ]);
+  };
 
   return (
-    <div className="max-w-2xl w-full flex flex-col py-4">
-      {/* USER FEEDBACK */}
-      <Alert
-        variant={
-          stateOfAlert.variant === "destructive" ? "destructive" : "default"
-        }
-      >
-        {
-          {
-            destructive: <CrossIcon className="w-5 h-5" />,
-            pending: <LoaderIcon className="w-5 h-5 animate-spin" />,
-            default: <SmileIcon className="w-5 h-5" />,
-          }[stateOfAlert.variant]
-        }
-        <AlertTitle>{stateOfAlert.title}</AlertTitle>
-        <AlertDescription>{stateOfAlert.description}</AlertDescription>
-        {/* pleaase be patient dont quite until its completed rephraaase it in better words */}
-        <p className="text-muted-foreground text-xs mt-2">
-          Note: keep this tab open until the upload finishes. Processing then continues in the background.
-        </p>
-      </Alert>
+    <form onSubmit={submit} className="space-y-5" noValidate data-tour="uploader">
+      {atLimit && (
+        <Alert>
+          <AlertDescription>
+            You have reached the limit of {limit} documents. Delete one to add another.
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {/* FORM */}
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 mt-12"
-        >
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Python Crash Course" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="pdfFile"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div
-                    className={cn(
-                      "border flex flex-col justify-center items-center py-10 space-y-2",
-                      form.getValues("pdfFile")
-                        ? "border-solid"
-                        : "border-dashed"
-                    )}
-                    {...getRootProps()}
-                  >
-                    {form.getValues("pdfFile") ? (
-                      <FileIcon className="w-10 h-10" />
-                    ) : (
-                      <UploadCloudIcon className="w-10 h-10" />
-                    )}
-                    {form.getValues("pdfFile") ? (
-                      <p className="text-xs">
-                        {form.getValues("pdfFile")[0].path}
-                      </p>
-                    ) : (
-                      <p className="text-xs">
-                        Drag and drop your PDF file here or{" "}
-                        <span className="text-blue-500">browse</span>
-                      </p>
-                    )}
-                    <Input {...getInputProps()} />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={
-              uploadFileIsPending ||
-              initChatIsPending || // if there is erorrs of the form validation state use hook form
-              // if there is no file in form
-              !form.getValues("pdfFile") ||
-              !form.getValues("title")
-            }
-          >
-            {uploadFileIsPending || initChatIsPending
-              ? "Please wait..."
-              : "Create Chat"}
-          </Button>
-        </form>
-      </Form>
-    </div>
+      <div
+        {...getRootProps()}
+        className={cn(
+          "rounded-lg border bg-card transition-colors duration-150",
+          !file && "border-dashed bg-card/50 hover:bg-accent/40",
+          isDragActive && "border-highlight bg-accent",
+          (busy || atLimit) && "pointer-events-none opacity-70",
+          fileError && "border-destructive"
+        )}
+      >
+        <input {...getInputProps()} aria-label="PDF file" />
+        {file ? (
+          <div className="flex items-center gap-3 p-4">
+            <FileTextIcon className="h-8 w-8 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{file.name}</p>
+              <p className="text-caption">{readableSize(file.size)}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={open} disabled={busy}>
+              Replace
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Remove the file"
+              disabled={busy}
+              onClick={() => setFile(null)}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex cursor-pointer flex-col items-center gap-2 px-6 py-10 text-center">
+            <UploadCloudIcon className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium">
+              {isDragActive ? "Drop the PDF here" : "Drag a PDF here, or click to choose one"}
+            </p>
+            <p className="text-caption">Text-based PDF, up to {MAX_MB} MB</p>
+          </div>
+        )}
+      </div>
+      {fileError && (
+        <p className="-mt-3 text-sm text-destructive" role="alert">
+          {fileError}
+        </p>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          placeholder="Cell biology, week 4"
+          disabled={busy || atLimit}
+          status={titleError ? "error" : undefined}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setTitleTouched(true);
+            setTitleError(null);
+          }}
+        />
+        {titleError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {titleError}
+          </p>
+        ) : (
+          <p className="text-caption">Shown in your document list. Each title can be used once.</p>
+        )}
+      </div>
+
+      {formError && (
+        <Alert variant="destructive" className="py-3">
+          <AlertTriangleIcon className="h-4 w-4" />
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      )}
+
+      {busy && (
+        <div className="space-y-2" aria-live="polite">
+          <Progress value={phase === "uploading" ? progress : 100} />
+          <p className="text-caption">
+            {phase === "uploading" ? `Uploading ${progress}%` : "Adding it to your documents"}
+          </p>
+        </div>
+      )}
+
+      <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy || atLimit}>
+        {busy ? (phase === "uploading" ? "Uploading" : "Adding document") : "Add document"}
+      </Button>
+      <p className="text-caption">
+        Marginalia reads the PDF after the upload, which usually takes a minute or two. You can leave
+        the page while it works.
+      </p>
+    </form>
   );
 };
 

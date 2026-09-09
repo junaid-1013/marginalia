@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOutIcon, LibraryIcon } from "lucide-react";
+import { CompassIcon, LogOutIcon, LibraryIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,12 @@ export function UserNav({ user }: { user: IHeaderUser }) {
           <Link href="/documents">
             <LibraryIcon className="mr-2 h-4 w-4" />
             Your documents
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/documents?tour=1">
+            <CompassIcon className="mr-2 h-4 w-4" />
+            Take the tour
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem

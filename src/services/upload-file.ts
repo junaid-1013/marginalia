@@ -16,9 +16,12 @@ export interface IUploadedFile {
 export const uploadFile = async ({
   file,
   userId,
+  onProgress,
 }: {
   file: FileWithPath;
   userId: string;
+  /** 0 to 100 while the file is on its way */
+  onProgress?: (percentage: number) => void;
 }): Promise<IUploadedFile> => {
   // userId/uuid.pdf: unique per upload, and namespaced per user
   const pathname = `${userId}/${crypto.randomUUID()}.pdf`;
@@ -26,6 +29,7 @@ export const uploadFile = async ({
     access: BLOB_ACCESS,
     contentType: "application/pdf",
     handleUploadUrl: "/api/blob/upload",
+    onUploadProgress: ({ percentage }) => onProgress?.(Math.round(percentage)),
   });
   return { url: blob.url, pathname: blob.pathname };
 };

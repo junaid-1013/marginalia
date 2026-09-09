@@ -42,7 +42,7 @@ const Header = ({ user }: { user: IHeaderUser }) => {
             </Button>
           </nav>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" data-tour="account">
           <ThemeToggler />
           <UserNav user={user} />
         </div>

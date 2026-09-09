@@ -57,7 +57,7 @@ const SideNav: React.FC<IProps> = ({ params }) => {
     },
   ];
   return (
-    <div className="border-r-muted border-r flex flex-col">
+    <div className="border-r-muted border-r flex flex-col" data-tour="doc-nav">
       <TooltipProvider>
         {sidebar_nav.map((nav, index) => (
           <SideNavItem key={index} nav={nav} />
