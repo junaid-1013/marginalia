@@ -15,8 +15,7 @@ const PdfViewer = ({ chatId, page }: IProps) => {
       key={`${chatId}-${page ?? 0}`}
       src={src}
       title="Document"
-      width="100%"
-      height="100%"
+      className="block h-full w-full"
     />
   );
 };

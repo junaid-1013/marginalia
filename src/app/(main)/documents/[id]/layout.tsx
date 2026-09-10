@@ -1,10 +1,10 @@
+import { notFound } from "next/navigation";
+
 import { auth } from "@/auth";
 import ChatContainer from "@/components/chat/chat-container";
-import DocumentStatus from "@/components/document-status";
-import SideNav from "@/components/layout/document/sidenav";
 import { TourGuide } from "@/components/tour/tour-guide";
-import { Separator } from "@/components/ui/separator";
-import React from "react";
+import { WorkspaceShell } from "@/components/workspace/workspace-shell";
+import { getUserChat } from "@/services/db/chat";
 
 type IProps = {
   children: React.ReactNode;
@@ -13,22 +13,31 @@ type IProps = {
 
 const DocumentIdLayout = async ({ children, params }: IProps) => {
   const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  // also the ownership check for every tool page below
+  const chat = await getUserChat(params.id, userId);
+  if (!chat) notFound();
+
   return (
-    <div className="flex max-h-[calc(100vh-65px)] min-h-[calc(100vh-65px)] h-full">
-      <SideNav params={params} />
-      {session?.user?.id && <TourGuide tour="workspace" userId={session.user.id} />}
-      <div className="flex-1 w-2/3 max-h-[calc(100vh-65px)] min-h-[calc(100vh-65px)] overflow-y-auto">
-        <DocumentStatus chatId={params.id} />
+    <>
+      <WorkspaceShell
+        chat={{
+          id: chat.id,
+          name: chat.name,
+          status: chat.status,
+          summaryStatus: chat.summaryStatus,
+          flashcardsStatus: chat.flashcardsStatus,
+          quizStatus: chat.quizStatus,
+          processingError: chat.processingError,
+        }}
+        chatPanel={<ChatContainer params={params} />}
+      >
         {children}
-      </div>
-      {/* <div className="w-px bg-black" /> */}
-      <div>
-        <Separator orientation="vertical" className="h-full" />
-      </div>
-      <div className="w-1/3" data-tour="chat">
-        <ChatContainer params={params} />
-      </div>
-    </div>
+      </WorkspaceShell>
+      <TourGuide tour="workspace" userId={userId} />
+    </>
   );
 };
 

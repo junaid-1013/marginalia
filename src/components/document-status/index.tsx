@@ -24,7 +24,7 @@ const DocumentStatus = ({ chatId }: IProps) => {
   if (!isProcessing && !isFailed) return null;
 
   return (
-    <div className="container pt-4">
+    <div className="px-4 pt-4">
       <Alert variant={isFailed ? "destructive" : "default"}>
         {isFailed ? (
           <AlertTriangleIcon className="w-5 h-5" />
