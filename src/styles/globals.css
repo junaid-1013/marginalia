@@ -271,3 +271,20 @@
 .marginalia-tour .driver-popover-arrow-side-bottom.driver-popover-arrow {
   border-bottom-color: hsl(var(--popover));
 }
+
+/* notes editor (BlockNote): theme variables and the reading font */
+.notes-editor .bn-container[data-color-scheme] {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: hsl(var(--foreground));
+  --bn-colors-menu-background: hsl(var(--popover));
+  --bn-colors-menu-text: hsl(var(--popover-foreground));
+  --bn-colors-border: hsl(var(--border));
+  --bn-colors-hovered-background: hsl(var(--accent));
+  --bn-colors-selected-background: hsl(var(--accent));
+  --bn-colors-side-menu: hsl(var(--muted-foreground));
+  --bn-font-family: var(--font-display), Georgia, serif;
+}
+.notes-editor .bn-editor {
+  font-size: 1.0625rem;
+  line-height: 1.75rem;
+}

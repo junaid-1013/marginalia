@@ -1,13 +1,17 @@
 "use client";
 
-import { InboxIcon as EmptyBoxIcon, LoaderIcon } from "lucide-react";
+import { useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { useEffect } from "react";
+import { RefreshCwIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlashcardArray } from "react-quizlet-flashcard";
+import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { flashcardsAPI, getChatFlashCards } from "@/apis/flashcards";
+import { FlashcardDeck } from "@/components/study/flashcard-deck";
+import { StudyGate } from "@/components/study/study-gate";
+import { ToolPage } from "@/components/study/tool-page";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { useDocumentStatus } from "@/hooks/use-document-status";
 
 const DocumentFlashcardsPage = () => {
@@ -18,14 +22,11 @@ const DocumentFlashcardsPage = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: flashcardsAPI,
     // generation runs in the background, start polling the status
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["status", id] }),
-    onError: (error) => {
-      console.error("error", error);
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["status", id] }),
+    onError: () => toast.error("The flashcards could not be started. Try again."),
   });
 
-  const { data: flashcardsData } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["flashcards-associated-with-Chat", id],
     queryFn: getChatFlashCards,
   });
@@ -33,94 +34,52 @@ const DocumentFlashcardsPage = () => {
   // load the flashcards as soon as the background job reports it is done
   useEffect(() => {
     if (status?.flashcardsStatus === "READY") {
-      queryClient.invalidateQueries({
-        queryKey: ["flashcards-associated-with-Chat", id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["flashcards-associated-with-Chat", id] });
     }
   }, [status?.flashcardsStatus, id, queryClient]);
+
+  // a stable list, so the deck only restarts when the cards really change
+  const cards = useMemo(
+    () => (data ?? []).map((c) => ({ question: c.question, answer: c.answer })),
+    [data]
+  );
+
+  const generate = () => mutate({ chatId: id as string });
+
   return (
-    <>
-      <main className="container py-4">
-        <div className="flex justify-between pt-6">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Flashcards
-          </h2>
-          {/* if summary not available, so generate */}
-          {!(flashcardsData && flashcardsData.length > 0) && (
+    <ToolPage>
+      <PageHeader
+        title="Flashcards"
+        description={cards.length > 0 ? `${cards.length} cards from this document` : "Cards to drill what you read."}
+        actions={
+          cards.length > 0 && (
             <Button
-              onClick={() => mutate({ chatId: id as string })}
+              variant="outline"
+              size="sm"
+              onClick={generate}
               disabled={isPending || flashcardsRunning || !isReady}
             >
-              {(isPending || flashcardsRunning) && (
-                <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
-              )}
-              Get Flashcards
+              <RefreshCwIcon className="h-4 w-4" />
+              Regenerate
             </Button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-5 my-10 relative">
-          {!(flashcardsData && flashcardsData.length > 0) && (
-            <div className="absolte top-1/2 left-1/2 flex flex-col items-center justify-center w-full h-96">
-              <EmptyBoxIcon className="w-24 h-24 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">
-                {flashcardsRunning
-                  ? "Generating your flashcards..."
-                  : status?.flashcardsStatus === "FAILED"
-                  ? "Flashcards failed. Try again."
-                  : "No Flashcards found"}
-              </p>
-            </div>
-          )}
-          {flashcardsData && flashcardsData.length > 0 && (
-            <div className="mx-auto text-foreground stroke-foreground">
-              <FlashcardArray
-                cycle={true}
-                cards={flashcardsData.map((flashcard, i) => {
-                  return {
-                    id: i,
-                    frontHTML: flashcard.question,
-                    backHTML: flashcard.answer,
-                  };
-                })}
-                frontCardStyle={{
-                  backgroundColor: "lightblue",
-                  borderRadius: "8px",
-                  padding: "20px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                }}
-                backCardStyle={{
-                  backgroundColor: "lightgreen",
-                  borderRadius: "8px",
-                  padding: "20px",
-                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                }}
-                frontContentStyle={{
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  color: "black",
-                  textAlign: "center",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                backContentStyle={{
-                  fontSize: "14px",
-                  color: "black",
-                  textAlign: "center",
-                  display: "flex",
-                  alignItems: "center",
-                  flex: "1",
-                }}
-                FlashcardArrayStyle={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </main>
-    </>
+          )
+        }
+      />
+      <StudyGate
+        noun="flashcards"
+        pitch="Question and answer cards written from the document. Flip each one, then say whether you knew it."
+        generateLabel="Generate flashcards"
+        loading={isLoading}
+        hasContent={cards.length > 0}
+        documentReady={isReady}
+        running={flashcardsRunning}
+        failed={status?.flashcardsStatus === "FAILED"}
+        starting={isPending}
+        onGenerate={generate}
+      >
+        <FlashcardDeck cards={cards} />
+      </StudyGate>
+    </ToolPage>
   );
 };
 

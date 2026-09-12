@@ -1,51 +1,32 @@
 "use client";
 
+import { useMemo } from "react";
 import { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/react";
 import "@blocknote/react/style.css";
-import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 
 interface IEditorProps {
+  initialContent?: PartialBlock[];
   onChange?: (blocks: Block[]) => void;
-  initialContentt?: Block[];
-  onSave?: () => void;
-  loadBlock: () => Promise<PartialBlock[] | undefined>;
 }
-const Editor: React.FC<IEditorProps> = ({
-  initialContentt,
-  onChange,
-  loadBlock,
-}) => {
-  const [initialContent, setInitialContent] = useState<
-    PartialBlock[] | undefined | "loading"
-  >(initialContentt || "loading");
 
-  useEffect(() => {
-    loadBlock().then((content) => {
-      setInitialContent(content);
-    });
-    // load the saved note once on mount
+/** The notes editor. It reads its content once, so mount it after the note has loaded. */
+const Editor: React.FC<IEditorProps> = ({ initialContent, onChange }) => {
+  const { resolvedTheme } = useTheme();
+  const editor = useMemo(
+    () => BlockNoteEditor.create({ initialContent }),
+    // the initial content is only read when the editor is created
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    []
+  );
 
-  const editor = useMemo(() => {
-    if (initialContent === "loading") {
-      return undefined;
-    }
-    return BlockNoteEditor.create({ initialContent });
-  }, [initialContent]);
-
-  if (editor === undefined) {
-    return "Loading note...";
-  }
-
-  // Renders the editor instance.
   return (
     <BlockNoteView
       editor={editor}
-      onChange={() => onChange && onChange(editor.document)}
-      data-theming-css-variables-demo
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
+      onChange={() => onChange?.(editor.document)}
     />
   );
 };

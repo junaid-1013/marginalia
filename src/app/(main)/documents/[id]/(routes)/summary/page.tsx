@@ -1,27 +1,18 @@
 "use client";
 
-import {
-  InboxIcon as EmptyBoxIcon,
-  LoaderIcon,
-  SparkleIcon,
-} from "lucide-react";
-import { useParams } from "next/navigation";
 import { useEffect } from "react";
+import { useParams } from "next/navigation";
+import { CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Balancer from "react-wrap-balancer";
-
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { toast } from "sonner";
 
 import { summarize } from "@/apis";
-import { Button } from "@/components/ui/button";
 import { getChatSummary } from "@/apis/summary";
-import WordCloud from "@/components/word-cloud";
-import { Separator } from "@/components/ui/separator";
+import { StudyGate } from "@/components/study/study-gate";
+import { ToolPage } from "@/components/study/tool-page";
+import WordCloud from "@/components/study/word-cloud";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { useDocumentStatus } from "@/hooks/use-document-status";
 
 const DocumentSummaryPage = () => {
@@ -32,14 +23,11 @@ const DocumentSummaryPage = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: summarize,
     // generation runs in the background, start polling the status
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["status", id] }),
-    onError: (error) => {
-      console.error("error", error);
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["status", id] }),
+    onError: () => toast.error("The summary could not be started. Try again."),
   });
 
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading } = useQuery({
     queryKey: ["summary-associated-with-Chat", id],
     queryFn: getChatSummary,
   });
@@ -47,97 +35,111 @@ const DocumentSummaryPage = () => {
   // load the summary as soon as the background job reports it is done
   useEffect(() => {
     if (status?.summaryStatus === "READY") {
-      queryClient.invalidateQueries({
-        queryKey: ["summary-associated-with-Chat", id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["summary-associated-with-Chat", id] });
     }
   }, [status?.summaryStatus, id, queryClient]);
 
+  const generate = () => mutate({ chatId: id as string });
+
+  const copy = async () => {
+    if (!summary) return;
+    const text = [
+      summary.tldr,
+      "",
+      "Key takeaways",
+      ...summary.keyTakeaways.map((t: string) => `- ${t}`),
+      "",
+      "Introduction",
+      summary.introduction,
+      "",
+      "Abstract",
+      summary.abstract,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Summary copied.");
+    } catch {
+      toast.error("Could not copy. Select the text and copy it manually.");
+    }
+  };
+
   return (
-    <>
-      <main className="container py-4">
-        <div className="sticky top-0 left-0 bg-background/80 backdrop-blur-sm z-20">
-          <div className="flex justify-between py-6">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
-              Summary
-            </h2>
-            {/* if summary not available, so generate */}
-            {!summary && (
+    <ToolPage>
+      <PageHeader
+        title="Summary"
+        description="The document in short, with the points worth remembering."
+        actions={
+          summary && (
+            <>
+              <Button variant="outline" size="sm" onClick={copy}>
+                <CopyIcon className="h-4 w-4" />
+                Copy
+              </Button>
               <Button
-                onClick={() => mutate({ chatId: id as string })}
+                variant="outline"
+                size="sm"
+                onClick={generate}
                 disabled={isPending || summaryRunning || !isReady}
               >
-                {(isPending || summaryRunning) && (
-                  <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
-                )}
-                Summarize
+                <RefreshCwIcon className="h-4 w-4" />
+                Regenerate
               </Button>
-            )}
-          </div>
-          <Separator />
-        </div>
-        <div className="flex flex-wrap gap-5 my-10 relative">
-          {!summary && (
-            <div className="absolte top-1/2 left-1/2 flex flex-col items-center justify-center w-full h-96">
-              <EmptyBoxIcon className="w-24 h-24 text-muted-foreground" />
-              <p className="text-lg text-muted-foreground">
-                {summaryRunning
-                  ? "Generating your summary..."
-                  : status?.summaryStatus === "FAILED"
-                  ? "Summary failed. Try again."
-                  : "No summary found"}
-              </p>
-            </div>
-          )}
-
-          {summary && (
-            <>
-              <div className="mx-auto w-full flex flex-col justify-center items-center space-y-1">
-                <WordCloud words={summary.mostUsedWords} />
-                <p className="text-xs text-primary/80">Words Count</p>
-              </div>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Introduction</AccordionTrigger>
-                  <AccordionContent>
-                    <Balancer className="text-lg">
-                      {summary.introduction}
-                    </Balancer>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Abstract</AccordionTrigger>
-                  <AccordionContent>
-                    <Balancer className="text-lg">{summary.abstract}</Balancer>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Key Takeaways</AccordionTrigger>
-                  <AccordionContent>
-                    {/* this is the array of the stings so show them in the ul */}
-                    <ul className="list-inside space-y-2">
-                      {summary.keyTakeaways?.map((takeaway: string) => (
-                        <li key={takeaway} className="flex">
-                          <SparkleIcon className="w-4 h-4 text-accent mr-4 inline-block stroke-foreground/90 shrink-0" />
-                          <span className="opacity-90 text-lg">{takeaway}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  {/* tldr */}
-                  <AccordionTrigger>TL;DR</AccordionTrigger>
-                  <AccordionContent>
-                    <Balancer className="text-lg">{summary.tldr}</Balancer>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
             </>
-          )}
-        </div>
-      </main>
-    </>
+          )
+        }
+      />
+      <StudyGate
+        noun="summary"
+        pitch="A short summary, the key takeaways and the most used words, written from the whole document."
+        generateLabel="Generate summary"
+        loading={isLoading}
+        hasContent={!!summary}
+        documentReady={isReady}
+        running={summaryRunning}
+        failed={status?.summaryStatus === "FAILED"}
+        starting={isPending}
+        onGenerate={generate}
+      >
+        {summary && (
+          <article className="space-y-10">
+            <section className="space-y-2">
+              <p className="text-caption">In short</p>
+              <p className="font-display text-2xl leading-9 text-balance">
+                <span className="mark-hl">{summary.tldr}</span>
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="text-heading">Key takeaways</h2>
+              <ul className="space-y-3">
+                {summary.keyTakeaways?.map((takeaway: string) => (
+                  <li key={takeaway} className="text-reading border-l-2 border-margin/50 pl-4">
+                    {takeaway}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-heading">Introduction</h2>
+              <p className="text-reading text-ink-soft">{summary.introduction}</p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-heading">Abstract</h2>
+              <p className="text-reading text-ink-soft">{summary.abstract}</p>
+            </section>
+
+            {summary.mostUsedWords?.length > 0 && (
+              <section className="space-y-3 border-t pt-8">
+                <h2 className="text-heading">Most used words</h2>
+                <WordCloud words={summary.mostUsedWords} />
+              </section>
+            )}
+          </article>
+        )}
+      </StudyGate>
+    </ToolPage>
   );
 };
 
