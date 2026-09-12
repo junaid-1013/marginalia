@@ -4,7 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { Provider as BalancerProvider } from "react-wrap-balancer";
 
-import { display, sans } from "@/lib/fonts";
+import { display, displayItalic, sans } from "@/lib/fonts";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 import { ThemeProvider, ReactQueryProvider } from "@/providers";
 
@@ -38,7 +38,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${display.variable} ${sans.variable}`}
+      className={`${display.variable} ${displayItalic.variable} ${sans.variable}`}
     >
       <body className="font-sans antialiased">
         <SessionProvider>

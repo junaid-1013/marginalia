@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { DEMO_DOC, PASSAGES } from "./demo-data";
 
 interface IProps {
+  id?: string;
   /** passages the latest answer is based on: they get the highlighter */
   activeIds: string[];
   className?: string;
@@ -16,12 +17,13 @@ interface IProps {
  * does the note on a passage that an answer cited.
  */
 export const DocumentPane = forwardRef<HTMLDivElement, IProps>(
-  ({ activeIds, className }, ref) => {
+  ({ id, activeIds, className }, ref) => {
     const pages = Array.from(new Set(PASSAGES.map((p) => p.page)));
 
     return (
       <div
         ref={ref}
+        id={id}
         className={cn("relative overflow-y-auto bg-background", className)}
         tabIndex={0}
         aria-label={`${DEMO_DOC.title}, pages ${pages[0]} to ${pages[pages.length - 1]}`}
@@ -44,7 +46,7 @@ export const DocumentPane = forwardRef<HTMLDivElement, IProps>(
                       {i === 0 && <span>p. {page}</span>}
                       <span
                         className={cn(
-                          "block text-xs not-italic text-highlight-ink transition-opacity duration-300",
+                          "block font-sans text-xs not-italic text-highlight-ink transition-opacity duration-300",
                           on ? "opacity-100" : "opacity-0"
                         )}
                         aria-hidden={!on}

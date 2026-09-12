@@ -140,7 +140,7 @@ const DesignShowcase = () => (
           <Badge variant="success" dot>Ready</Badge>
           <Badge variant="destructive" dot>Failed</Badge>
         </div>
-        <Progress value={62} className="max-w-md" />
+        <Progress value={62} aria-label="Example progress" className="max-w-md" />
         <div className="max-w-md space-y-2">
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="h-4 w-full" />

@@ -202,7 +202,7 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
 
       {busy && (
         <div className="space-y-2" aria-live="polite">
-          <Progress value={phase === "uploading" ? progress : 100} />
+          <Progress value={phase === "uploading" ? progress : 100} aria-label="Upload progress" />
           <p className="text-caption">
             {phase === "uploading" ? `Uploading ${progress}%` : "Adding it to your documents"}
           </p>

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { NavActions } from "@/components/landing/auth-links";
 import { ThemeToggler } from "@/components/ui/theme-toggler";
 
 const links = [
@@ -10,7 +11,7 @@ const links = [
   { href: "#faq", label: "FAQ" },
 ];
 
-export const LandingNav = ({ loggedIn }: { loggedIn: boolean }) => (
+export const LandingNav = () => (
   <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
     <div className="container flex h-16 max-w-6xl items-center justify-between gap-4">
       <Link href="/" aria-label="Marginalia home">
@@ -25,20 +26,7 @@ export const LandingNav = ({ loggedIn }: { loggedIn: boolean }) => (
       </nav>
       <div className="flex items-center gap-2">
         <ThemeToggler />
-        {loggedIn ? (
-          <Button asChild size="sm">
-            <Link href="/documents">Open app</Link>
-          </Button>
-        ) : (
-          <>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/create-account">Get started</Link>
-            </Button>
-          </>
-        )}
+        <NavActions />
       </div>
     </div>
   </header>

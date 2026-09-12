@@ -125,7 +125,7 @@ export const FlashcardDeck = ({ cards }: { cards: IFlashcard[] }) => {
             Shuffle
           </Button>
         </div>
-        <Progress value={(index / deck.length) * 100} />
+        <Progress value={(index / deck.length) * 100} aria-label="Deck progress" />
       </div>
 
       <button

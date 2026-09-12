@@ -7,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FinalCtaButtons, HeroCta } from "@/components/landing/auth-links";
 import { Button } from "@/components/ui/button";
 import { MarginalRow } from "@/components/ui/margin";
 
@@ -27,7 +28,7 @@ const Section = ({
   </section>
 );
 
-export const Hero = ({ loggedIn }: { loggedIn: boolean }) => (
+export const Hero = () => (
   <section className="container max-w-6xl pb-12 pt-14 md:pb-16 md:pt-24">
     <h1 className="text-display max-w-4xl">Dense texts, decoded into active recall.</h1>
     <p className="text-lead mt-6 max-w-xl">
@@ -35,9 +36,7 @@ export const Hero = ({ loggedIn }: { loggedIn: boolean }) => (
       the page it came from.
     </p>
     <div className="mt-8 flex flex-wrap items-center gap-3">
-      <Button asChild size="lg">
-        <Link href={loggedIn ? "/documents/create" : "/create-account"}>Upload your first PDF</Link>
-      </Button>
+      <HeroCta />
       <Button asChild size="lg" variant="outline">
         <a href="#demo">See it work</a>
       </Button>
@@ -167,23 +166,14 @@ export const Faq = () => (
   </Section>
 );
 
-export const FinalCta = ({ loggedIn }: { loggedIn: boolean }) => (
+export const FinalCta = () => (
   <section className="border-t bg-card py-16 md:py-24">
     <div className="container max-w-6xl">
       <h2 className="text-display max-w-3xl text-[clamp(2.25rem,1.4rem+3.6vw,3.75rem)]">
         Start with one PDF.
       </h2>
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <Button asChild size="lg">
-          <Link href={loggedIn ? "/documents/create" : "/create-account"}>
-            {loggedIn ? "Upload a PDF" : "Create an account"}
-          </Link>
-        </Button>
-        {!loggedIn && (
-          <Button asChild size="lg" variant="ghost">
-            <Link href="/login">Log in</Link>
-          </Button>
-        )}
+        <FinalCtaButtons />
       </div>
     </div>
   </section>

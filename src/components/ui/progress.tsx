@@ -11,6 +11,7 @@ export const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
+    // a progress bar has no text of its own, so callers pass aria-label to say what is progressing
     className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-sunken", className)}
     {...props}
   >

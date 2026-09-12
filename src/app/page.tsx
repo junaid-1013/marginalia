@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { auth } from "@/auth";
 import { Demo } from "@/components/landing/demo/demo";
 import { LandingNav } from "@/components/landing/nav";
 import {
@@ -19,15 +18,13 @@ export const metadata: Metadata = {
     "Upload a PDF, ask it questions, and study from summaries, flashcards and quizzes. Every answer points to the page it came from.",
 };
 
-export default async function Home() {
-  const session = await auth();
-  const loggedIn = !!session?.user;
-
+// no per-request work here: the page is prerendered once and served from the cache
+export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      <LandingNav loggedIn={loggedIn} />
+      <LandingNav />
       <main>
-        <Hero loggedIn={loggedIn} />
+        <Hero />
         <div className="container max-w-6xl pb-16 md:pb-24">
           <Demo />
         </div>
@@ -35,7 +32,7 @@ export default async function Home() {
         <Features />
         <Trust />
         <Faq />
-        <FinalCta loggedIn={loggedIn} />
+        <FinalCta />
       </main>
       <Footer />
     </div>

@@ -119,7 +119,7 @@ export const QuizRunner = ({ questions }: { questions: IQuizQuestion[] }) => {
         <p className="text-caption tabular-nums" aria-live="polite">
           Question {index + 1} of {round.length}
         </p>
-        <Progress value={(index / round.length) * 100} />
+        <Progress value={(index / round.length) * 100} aria-label="Quiz progress" />
       </div>
 
       <h2 className="font-display text-2xl leading-9 text-balance">{q.question}</h2>

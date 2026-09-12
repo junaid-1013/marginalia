@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ChatDemo, type IMsg } from "./chat-demo";
 import { DEMO_DOC, PASSAGES, QUESTIONS, type IQa } from "./demo-data";
@@ -11,6 +10,14 @@ import { DocumentPane } from "./document-pane";
 import { FlashcardsDemo, QuizDemo, SummaryDemo } from "./study-demos";
 
 type RightTab = "chat" | "summary" | "cards" | "quiz";
+
+const TAB_LIST: { value: RightTab | "doc"; label: string }[] = [
+  { value: "doc", label: "Document" },
+  { value: "chat", label: "Chat" },
+  { value: "summary", label: "Summary" },
+  { value: "cards", label: "Flashcards" },
+  { value: "quiz", label: "Quiz" },
+];
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -145,6 +152,12 @@ export const Demo = () => {
   };
 
   const tabValue = mobileDoc ? "doc" : rightTab;
+  const selectTab = (v: RightTab | "doc") => {
+    interacted.current = true;
+    if (v === "doc") return setMobileDoc(true);
+    setMobileDoc(false);
+    setRightTab(v);
+  };
 
   return (
     <div
@@ -170,6 +183,7 @@ export const Demo = () => {
         <DocumentPane
           ref={docRef}
           activeIds={activeIds}
+          id="demo-doc"
           className={cn(
             "h-[24rem] lg:h-full lg:border-r",
             mobileDoc ? "block order-2 lg:order-none" : "hidden lg:block"
@@ -177,28 +191,48 @@ export const Demo = () => {
         />
 
         <div className={cn("flex min-h-0 flex-col", mobileDoc && "order-1 lg:order-none")}>
-          <Tabs
-            value={tabValue}
-            onValueChange={(v) => {
-              interacted.current = true;
-              if (v === "doc") return setMobileDoc(true);
-              setMobileDoc(false);
-              setRightTab(v as RightTab);
+          <div
+            role="tablist"
+            aria-label="Demo tools"
+            onKeyDown={(e) => {
+              // arrow keys move between tabs, like any tablist
+              const tabs = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+                (t) => t.offsetParent !== null
+              );
+              const i = tabs.indexOf(document.activeElement as HTMLButtonElement);
+              if (i < 0 || (e.key !== "ArrowRight" && e.key !== "ArrowLeft")) return;
+              e.preventDefault();
+              const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+              next.focus();
+              next.click();
             }}
-            className="border-b px-2 sm:px-3"
+            className="flex overflow-x-auto border-b px-2 [scrollbar-width:none] sm:px-3 [&::-webkit-scrollbar]:hidden"
           >
-            <TabsList className="w-full overflow-x-auto border-b-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsTrigger value="doc" className="lg:hidden">
-                Document
-              </TabsTrigger>
-              <TabsTrigger value="chat">Chat</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-              <TabsTrigger value="cards">Flashcards</TabsTrigger>
-              <TabsTrigger value="quiz">Quiz</TabsTrigger>
-            </TabsList>
-          </Tabs>
+            {TAB_LIST.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                role="tab"
+                id={`demo-tab-${t.value}`}
+                aria-selected={tabValue === t.value}
+                aria-controls={t.value === "doc" ? "demo-doc" : "demo-panel"}
+                tabIndex={tabValue === t.value ? 0 : -1}
+                onClick={() => selectTab(t.value)}
+                className={cn(
+                  "-mb-px shrink-0 border-b-2 border-transparent px-3 py-2 font-sans text-sm font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  tabValue === t.value && "border-highlight text-foreground",
+                  t.value === "doc" && "lg:hidden"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
           <div
+            id="demo-panel"
+            role="tabpanel"
+            aria-labelledby={`demo-tab-${tabValue === "doc" ? rightTab : tabValue}`}
             className={cn(
               "min-h-[22rem] flex-1 overflow-hidden lg:min-h-0",
               mobileDoc && "hidden lg:block"
