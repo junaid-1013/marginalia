@@ -39,6 +39,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  // "/" is left out on purpose: the landing page is static and public, so it must carry no auth cookies
-  matcher: ["/((?!.+\\.[\\w]+$|_next).+)", "/(api|trpc)(.*)"],
+  // "/" and "/about" are left out on purpose: they are static public pages, so they must carry no auth cookies
+  matcher: ["/((?!.+\\.[\\w]+$|_next|about$).+)", "/(api|trpc)(.*)"],
 };

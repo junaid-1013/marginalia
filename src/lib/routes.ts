@@ -3,7 +3,7 @@
  * @type {string[]}
  */
 export const publicRoutes: string[] =
-  process.env.NODE_ENV === "production" ? ["/"] : ["/", "/design"];
+  process.env.NODE_ENV === "production" ? ["/", "/about"] : ["/", "/about", "/design"];
 
 /**
  * Generated metadata images (link previews, home screen icon) must load

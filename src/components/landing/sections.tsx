@@ -10,6 +10,7 @@ import {
 import { FinalCtaButtons, HeroCta } from "@/components/landing/auth-links";
 import { Button } from "@/components/ui/button";
 import { MarginalRow } from "@/components/ui/margin";
+import { REPO_URL } from "@/lib/site";
 
 const Section = ({
   id,
@@ -186,7 +187,15 @@ export const Footer = () => (
         <Logo />
         <p className="text-caption">Dense texts, decoded into active recall.</p>
       </div>
-      <p className="text-caption">&copy; {new Date().getFullYear()} Marginalia</p>
+      <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-caption">
+        <Link href="/about" className="hover:text-foreground">
+          About
+        </Link>
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+          Source on GitHub
+        </a>
+        <span>&copy; {new Date().getFullYear()} Marginalia</span>
+      </nav>
     </div>
   </footer>
 );
