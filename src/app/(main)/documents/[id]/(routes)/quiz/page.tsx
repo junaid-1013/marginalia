@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { RefreshCwIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { reportAiError } from "@/lib/client-errors";
 
 import { getChatQuiz, quizAPI } from "@/apis/quiz";
 import { QuizRunner } from "@/components/study/quiz-runner";
@@ -23,7 +23,7 @@ const DocumentQuizPage = () => {
     mutationFn: quizAPI,
     // generation runs in the background, start polling the status
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["status", id] }),
-    onError: () => toast.error("The quiz could not be started. Try again."),
+    onError: (e) => reportAiError(e, "The quiz could not be started. Try again."),
   });
 
   const { data: quiz, isLoading } = useQuery({
@@ -64,6 +64,7 @@ const DocumentQuizPage = () => {
         documentReady={isReady}
         running={quizRunning}
         failed={status?.quizStatus === "FAILED"}
+        errorCode={status?.errorCode}
         starting={isPending}
         onGenerate={generate}
       >

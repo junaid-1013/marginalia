@@ -2,6 +2,7 @@ import { AlertTriangleIcon, InboxIcon, LoaderIcon, SparklesIcon } from "lucide-r
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { KeyNeeded, isKeyCode } from "@/components/ai/key-needed";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -18,6 +19,8 @@ interface IProps {
   running: boolean;
   /** the last job failed */
   failed: boolean;
+  /** the code of that failure when it was about the AI key */
+  errorCode?: string | null;
   /** the request to start a job is in flight */
   starting: boolean;
   onGenerate: () => void;
@@ -37,6 +40,7 @@ export const StudyGate = ({
   documentReady,
   running,
   failed,
+  errorCode,
   starting,
   onGenerate,
   children,
@@ -74,6 +78,17 @@ export const StudyGate = ({
         title={`Generating your ${noun}`}
         description="This usually takes a minute. You can leave this page, it will be here when you come back."
       />
+    );
+  }
+
+  if (failed && isKeyCode(errorCode)) {
+    return (
+      <div className="space-y-3">
+        <KeyNeeded code={errorCode} />
+        <Button variant="outline" onClick={onGenerate} disabled={starting || !documentReady}>
+          Try again after updating the key
+        </Button>
+      </div>
     );
   }
 

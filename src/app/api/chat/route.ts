@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { streamAnswer } from "@/lib/ai/chat";
+import { consumeAction, getAiForUser } from "@/lib/ai/credentials";
+import { classifyAiError } from "@/lib/ai/errors";
 import {
   ApiError,
   errorResponse,
@@ -41,10 +43,23 @@ export async function POST(req: Request) {
       );
     }
 
-    return await streamAnswer({
-      chatId: chat.id,
-      messages: messages.map(({ role, content }) => ({ role, content })),
+    // the document's own embedding model, and the key of whoever may pay for this answer
+    const ai = await getAiForUser(userId, {
+      document: { embedProvider: chat.embedProvider, embedModel: chat.embedModel },
     });
+    await consumeAction(userId, ai);
+
+    try {
+      return await streamAnswer({
+        chatId: chat.id,
+        messages: messages.map(({ role, content }) => ({ role, content })),
+        ai,
+      });
+    } catch (e) {
+      // retrieval embeds the question before the answer streams: a bad key shows up here
+      const known = classifyAiError(e, ai.embedSource === "PLATFORM" ? "platform" : "user", ai.embedModelId);
+      throw known.code === "UNKNOWN" ? e : known;
+    }
   } catch (e) {
     return errorResponse(e, "Failed to answer");
   }

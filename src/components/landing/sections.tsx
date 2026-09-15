@@ -191,6 +191,9 @@ export const Footer = () => (
         <Link href="/about" className="hover:text-foreground">
           About
         </Link>
+        <Link href="/privacy" className="hover:text-foreground">
+          Privacy
+        </Link>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
           Source on GitHub
         </a>

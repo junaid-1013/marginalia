@@ -7,7 +7,10 @@ import { useDropzone, type FileRejection } from "react-dropzone";
 import { AlertTriangleIcon, FileTextIcon, UploadCloudIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ApiClientError } from "@/apis/errors";
 import { initChatAPI } from "@/apis";
+import { KeyNeeded, isKeyCode } from "@/components/ai/key-needed";
+import { useAiState } from "@/hooks/use-ai-state";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +56,10 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  const { data: ai } = useAiState();
+  // no key and no allowance left: say so before anything is uploaded
+  const notReady = ai && !ai.readiness.ok ? ai.readiness : null;
+  const [keyError, setKeyError] = useState<{ code: string; message: string } | null>(null);
   const [progress, setProgress] = useState(0);
 
   const busy = phase !== "idle";
@@ -61,7 +68,7 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
     accept: { "application/pdf": [".pdf"] },
     maxSize: MAX_BYTES,
     multiple: false,
-    disabled: busy || atLimit,
+    disabled: busy || atLimit || !!notReady,
     noClick: !!file, // with a file chosen the area is a summary, "Replace" opens the picker
     onDropAccepted: ([accepted]) => {
       setFile(accepted);
@@ -77,6 +84,7 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
     e.preventDefault();
     setFormError(null);
     setTitleError(null);
+    setKeyError(null);
 
     const name = title.trim();
     if (!file) return setFileError("Choose a PDF to upload.");
@@ -103,7 +111,9 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
     } catch (error) {
       setPhase("idle");
       const message = error instanceof Error ? error.message : "";
-      if (/already have a document/i.test(message)) {
+      if (error instanceof ApiClientError && isKeyCode(error.code)) {
+        setKeyError({ code: error.code, message });
+      } else if (/already have a document/i.test(message)) {
         setTitleError("You already have a document with this title. Choose another one.");
       } else {
         setFormError(message || "The upload did not finish. Check your connection and try again.");
@@ -113,6 +123,12 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate data-tour="uploader">
+      {(notReady || keyError) && (
+        <KeyNeeded
+          code={(keyError ?? (notReady as { code: string })).code}
+          message={(keyError ?? (notReady as { message: string })).message}
+        />
+      )}
       {atLimit && (
         <Alert>
           <AlertDescription>
@@ -176,7 +192,7 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
           id="title"
           value={title}
           placeholder="Cell biology, week 4"
-          disabled={busy || atLimit}
+          disabled={busy || atLimit || !!notReady}
           status={titleError ? "error" : undefined}
           onChange={(e) => {
             setTitle(e.target.value);
@@ -209,7 +225,7 @@ const CreateForm = ({ atLimit = false, limit }: IProps) => {
         </div>
       )}
 
-      <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy || atLimit}>
+      <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy || atLimit || !!notReady}>
         {busy ? (phase === "uploading" ? "Uploading" : "Adding document") : "Add document"}
       </Button>
       <p className="text-caption">

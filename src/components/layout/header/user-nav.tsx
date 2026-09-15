@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { CompassIcon, LogOutIcon, LibraryIcon } from "lucide-react";
+import { CompassIcon, KeyRoundIcon, LogOutIcon, LibraryIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { openAiSettings } from "@/hooks/use-ai-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,10 @@ export function UserNav({ user }: { user: IHeaderUser }) {
             <LibraryIcon className="mr-2 h-4 w-4" />
             Your documents
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer" onSelect={openAiSettings}>
+          <KeyRoundIcon className="mr-2 h-4 w-4" />
+          AI settings
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/documents?tour=1">

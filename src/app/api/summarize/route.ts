@@ -7,6 +7,7 @@ import {
   requireOwnedChat,
 } from "@/lib/api-guard";
 import { inngest } from "@/inngest/client";
+import { consumeAction, getAiForUser } from "@/lib/ai/credentials";
 import { updateChatStatus } from "@/services/db/chat";
 
 const bodySchema = z.object({ chatId: z.string().min(1) });
@@ -24,6 +25,9 @@ export async function POST(req: Request) {
     if (chat.summaryStatus === "PENDING" || chat.summaryStatus === "PROCESSING") {
       return Response.json({ error: "Already generating" }, { status: 409 });
     }
+
+    // a manual (re)generation spends AI: resolve whose key pays, and count it against the shared allowance
+    await consumeAction(userId, await getAiForUser(userId, { need: "chat" }));
 
     await updateChatStatus(chat.id, { summaryStatus: "PENDING" });
     await inngest.send({ name: "document/summarize", data: { chatId: chat.id } });

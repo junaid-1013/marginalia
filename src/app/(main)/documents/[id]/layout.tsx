@@ -31,6 +31,7 @@ const DocumentIdLayout = async ({ children, params }: IProps) => {
           flashcardsStatus: chat.flashcardsStatus,
           quizStatus: chat.quizStatus,
           processingError: chat.processingError,
+          errorCode: chat.errorCode,
         }}
         chatPanel={<ChatContainer params={params} />}
       >

@@ -1,18 +1,30 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
+import type { EmbeddingModel, LanguageModel } from "ai";
 
-import { OPENAI_API_KEY } from "@/constants";
+import { EMBEDDING_DIMENSIONS, type ProviderId } from "@/lib/ai/providers";
 
-// OPENAI_BASE_URL lets this point at any OpenAI compatible server
-// (Azure, OpenRouter, a local Ollama at http://localhost:11434/v1, ...).
-const provider = createOpenAI({
-  apiKey: OPENAI_API_KEY,
-  baseURL: process.env.OPENAI_BASE_URL || undefined,
-});
+// An operator (not a user) can point the app at a compatible server, for example a local one for
+// self-hosting or tests. Users can never set a URL, so there is no way to aim the server somewhere else.
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || undefined;
+const GOOGLE_BASE_URL = process.env.GOOGLE_BASE_URL || undefined;
 
-export const CHAT_MODEL_ID = process.env.AI_CHAT_MODEL || "gpt-4o-mini";
-// The vector column is vector(1536), so the embedding model must output 1536 dims.
-export const EMBED_MODEL_ID =
-  process.env.AI_EMBED_MODEL || "text-embedding-3-small";
+export const buildChatModel = (provider: ProviderId, apiKey: string, model: string): LanguageModel =>
+  provider === "GOOGLE"
+    ? createGoogleGenerativeAI({ apiKey, baseURL: GOOGLE_BASE_URL })(model)
+    : createOpenAI({ apiKey, baseURL: OPENAI_BASE_URL })(model);
 
-export const chatModel = () => provider(CHAT_MODEL_ID);
-export const embeddingModel = () => provider.embedding(EMBED_MODEL_ID);
+export const buildEmbeddingModel = (
+  provider: ProviderId,
+  apiKey: string,
+  model: string
+): EmbeddingModel<string> =>
+  provider === "GOOGLE"
+    ? createGoogleGenerativeAI({ apiKey, baseURL: GOOGLE_BASE_URL }).textEmbeddingModel(model, {
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+      })
+    : createOpenAI({ apiKey, baseURL: OPENAI_BASE_URL }).embedding(
+        model,
+        // the text-embedding-3 models can be asked for exactly the size of our vector column
+        model.startsWith("text-embedding-3") ? { dimensions: EMBEDDING_DIMENSIONS } : undefined
+      );

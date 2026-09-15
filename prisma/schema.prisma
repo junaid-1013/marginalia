@@ -28,31 +28,42 @@ model Account {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String      @unique
   emailVerified DateTime?
   image         String?
   password      String?
   accounts      Account[]
   Chat          Chat[]
+  aiKeys        AiKey[]
+  aiSettings    AiSettings?
+  aiUsage       AiUsage[]
 }
 
 model Chat {
-  id             String         @id @default(cuid())
+  id             String      @id @default(cuid())
   name           String
   pdfLink        String
   pdfStoragePath String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
   messages       Message[]
-  user           User           @relation(fields: [userId], references: [id])
+  user           User        @relation(fields: [userId], references: [id])
   userId         String
   summary        Summary?
   flashcards     Flashcard[]
   note           String?
   chunks         Chunk[]
-  quiz           QuizQuestion[]
+
+  // which model built this document's vectors: questions must be embedded with the same one
+  embedProvider AiProvider?
+  embedModel    String?
+  // whose key processed it (the shared allowance counts PLATFORM documents)
+  aiSource      AiSource?
+  // last key related failure, so the UI can offer "Add your key": NO_KEY, INVALID_KEY, QUOTA, PLATFORM_LIMIT, BAD_MODEL
+  errorCode     String?
+  quiz          QuizQuestion[]
 
   // background pipeline state (see src/inngest)
   status           JobStatus @default(PENDING)
@@ -147,4 +158,52 @@ enum Role {
   tool
   function
   data
+}
+
+enum AiProvider {
+  OPENAI
+  GOOGLE
+}
+
+enum AiSource {
+  USER
+  PLATFORM
+}
+
+// A user's own provider key. Only the AES-256-GCM ciphertext is stored (bound to the user), never the key.
+model AiKey {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    AiProvider
+  cipher      String
+  last4       String
+  keyVersion  Int        @default(1)
+  validatedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, provider])
+}
+
+// Which provider and model a user chats and embeds with. The keys live in AiKey.
+model AiSettings {
+  id            String     @id @default(cuid())
+  userId        String     @unique
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatProvider  AiProvider @default(OPENAI)
+  chatModel     String
+  embedProvider AiProvider @default(OPENAI)
+  embedModel    String
+  updatedAt     DateTime   @updatedAt
+}
+
+// Per day usage of the shared (platform) key, for its free allowance.
+model AiUsage {
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day     DateTime @db.Date
+  actions Int      @default(0) // chat messages and regenerations
+
+  @@id([userId, day])
 }

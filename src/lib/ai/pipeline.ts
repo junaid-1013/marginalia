@@ -1,9 +1,8 @@
-import { embed, embedMany } from "ai";
+import { embed, embedMany, type EmbeddingModel } from "ai";
 
 import { db } from "@/lib/db";
 import { errorFields, logger } from "@/lib/logger";
 import { extractPdfPages } from "@/lib/ai/pdf";
-import { embeddingModel } from "@/lib/ai/provider";
 import { splitText } from "@/lib/ai/split-text";
 import { openPdf } from "@/lib/storage";
 
@@ -70,8 +69,8 @@ export const getChunks = (chatId: string) =>
   db.chunk.findMany({ where: { chatId }, orderBy: { index: "asc" } });
 
 /** pgvector text format: '[0.1,0.2,...]' */
-export const embedQuery = async (text: string) =>
-  (await embed({ model: embeddingModel(), value: text })).embedding;
+export const embedQuery = async (text: string, model: EmbeddingModel<string>) =>
+  (await embed({ model, value: text })).embedding;
 
 export const toVectorLiteral = (vector: number[]) => `[${vector.join(",")}]`;
 
@@ -82,9 +81,11 @@ export const toVectorLiteral = (vector: number[]) => `[${vector.join(",")}]`;
 export const indexChunkBatch = async ({
   chatId,
   offset,
+  embedder,
 }: {
   chatId: string;
   offset: number;
+  embedder: EmbeddingModel<string>;
 }) => {
   const chunks = await db.chunk.findMany({
     where: { chatId, index: { gte: offset, lt: offset + EMBED_BATCH_SIZE } },
@@ -94,7 +95,7 @@ export const indexChunkBatch = async ({
   if (chunks.length === 0) return 0;
 
   const { embeddings: vectors } = await embedMany({
-    model: embeddingModel(),
+    model: embedder,
     values: chunks.map((c) => c.content),
   });
   const ids = chunks.map((c) => c.id);

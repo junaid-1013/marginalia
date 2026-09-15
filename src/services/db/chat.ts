@@ -170,6 +170,7 @@ export const getChatStatus = async (chatId: string) => {
       flashcardsStatus: true,
       quizStatus: true,
       processingError: true,
+      errorCode: true,
     },
   });
 };

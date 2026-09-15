@@ -8,6 +8,7 @@ import {
   requireOwnedChat,
 } from "@/lib/api-guard";
 import { inngest } from "@/inngest/client";
+import { consumeAction, getAiForUser } from "@/lib/ai/credentials";
 import { getChatQuiz, updateChatStatus } from "@/services/db/chat";
 
 // reads the query string, never prerender
@@ -29,6 +30,9 @@ export async function POST(req: Request) {
     if (chat.quizStatus === "PENDING" || chat.quizStatus === "PROCESSING") {
       return Response.json({ error: "Already generating" }, { status: 409 });
     }
+
+    // a manual (re)generation spends AI: resolve whose key pays, and count it against the shared allowance
+    await consumeAction(userId, await getAiForUser(userId, { need: "chat" }));
 
     await updateChatStatus(chat.id, { quizStatus: "PENDING" });
     await inngest.send({ name: "document/quiz", data: { chatId: chat.id } });

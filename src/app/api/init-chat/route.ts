@@ -11,6 +11,9 @@ import { MAX_DOCUMENTS_PER_USER } from "@/constants";
 import { db } from "@/lib/db";
 import { isTrustedPdfUrl } from "@/lib/storage";
 import { inngest } from "@/inngest/client";
+import { AiKeyError } from "@/lib/ai/errors";
+import { assertDocumentAllowance, getAiForUser } from "@/lib/ai/credentials";
+import { del } from "@vercel/blob";
 import { initializeChat, updateChatStatus } from "@/services/db/chat";
 
 const bodySchema = z.object({
@@ -32,6 +35,20 @@ export async function POST(req: Request) {
         },
         { status: 403 }
       );
+    }
+
+    // no key and no allowance: say so now, and do not leave the already uploaded file behind
+    try {
+      const ai = await getAiForUser(userId, { need: "embed" });
+      await assertDocumentAllowance(userId, ai);
+    } catch (e) {
+      if (e instanceof AiKeyError) {
+        if (pdfStoragePath.startsWith(`${userId}/`) && isTrustedPdfUrl(pdfLink, pdfStoragePath)) {
+          await del(pdfLink).catch(() => {});
+        }
+        throw e;
+      }
+      throw e;
     }
 
     // the file must live in this user's blob namespace

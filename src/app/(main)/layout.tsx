@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { AiSettingsHost } from "@/components/ai/ai-settings-host";
 import Header from "@/components/layout/header";
 
 interface IProps {
@@ -17,6 +18,7 @@ const MainLayout = async ({ children }: IProps) => {
     <>
       <Header user={{ name, email, image }} />
       <main>{children}</main>
+      <AiSettingsHost />
     </>
   );
 };

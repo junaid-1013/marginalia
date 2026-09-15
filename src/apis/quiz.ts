@@ -1,3 +1,5 @@
+import { ensureOk } from "@/apis/errors";
+
 export interface IQuizQuestion {
   id: string;
   question: string;
@@ -11,7 +13,7 @@ export const quizAPI = async (payload: { chatId: string }) => {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error("Failed to start quiz");
+  await ensureOk(response, "Failed to start quiz");
   return response.json();
 };
 

@@ -2,6 +2,14 @@ import { NonRetriableError } from "inngest";
 
 import { inngest } from "@/inngest/client";
 import {
+  chatAiFor,
+  describeFailure,
+  embedderForDocument,
+  resolveForIndexing,
+  sourceOf,
+  toJobError,
+} from "@/inngest/ai-guard";
+import {
   EMBED_BATCH_SIZE,
   countChunks,
   getChunks,
@@ -24,8 +32,11 @@ import {
   updateChatStatus,
 } from "@/services/db/chat";
 
-const errorMessage = (e: unknown) =>
-  (e instanceof Error ? e.message : "Unknown error").slice(0, 500);
+// what is stored for a failed job: a message without secrets, and a code when the cause is a key problem
+const failureData = (e: unknown) => {
+  const { code, message } = describeFailure(e);
+  return { processingError: message, ...(code ? { errorCode: code } : {}) };
+};
 
 const loadChat = async (chatId: string) => {
   const chat = await db.chat.findUnique({
@@ -46,7 +57,7 @@ export const processDocument = inngest.createFunction(
     onFailure: async ({ event, error }) => {
       await updateChatStatus(event.data.event.data.chatId, {
         status: "FAILED",
-        processingError: errorMessage(error),
+        ...failureData(error),
       }).catch(() => {});
     },
   },
@@ -56,15 +67,22 @@ export const processDocument = inngest.createFunction(
     const chat = await step.run("load-chat", () => loadChat(chatId));
 
     await step.run("mark-processing", () =>
-      updateChatStatus(chatId, { status: "PROCESSING", processingError: null })
+      updateChatStatus(chatId, { status: "PROCESSING", processingError: null, errorCode: null })
     );
+    // fail fast, before parsing anything: no key, a rejected key or a used-up allowance stops here
+    await step.run("resolve-ai", () => resolveForIndexing(chatId));
 
     const chunkCount = await step.run("ingest", () => ingestChunks(chat));
 
     for (let offset = 0; offset < chunkCount; offset += EMBED_BATCH_SIZE) {
-      await step.run(`index-${offset}`, () =>
-        indexChunkBatch({ chatId, offset })
-      );
+      await step.run(`index-${offset}`, async () => {
+        const { ai, embedder } = await embedderForDocument(chatId);
+        try {
+          return await indexChunkBatch({ chatId, offset, embedder });
+        } catch (e) {
+          throw toJobError(e, sourceOf(ai, "embed"), ai.embedModelId);
+        }
+      });
     }
 
     await step.run("mark-ready", () =>
@@ -95,9 +113,10 @@ export const generateSummary = inngest.createFunction(
     id: "generate-summary",
     retries: 2,
     concurrency: { limit: 1, key: "event.data.chatId" },
-    onFailure: async ({ event }) => {
+    onFailure: async ({ event, error }) => {
       await updateChatStatus(event.data.event.data.chatId, {
         summaryStatus: "FAILED",
+        ...(describeFailure(error).code ? { errorCode: describeFailure(error).code } : {}),
       }).catch(() => {});
     },
   },
@@ -106,7 +125,7 @@ export const generateSummary = inngest.createFunction(
     const { chatId } = event.data;
     const chat = await step.run("load-chat", () => loadChat(chatId));
     await step.run("mark-processing", () =>
-      updateChatStatus(chatId, { summaryStatus: "PROCESSING" })
+      updateChatStatus(chatId, { summaryStatus: "PROCESSING", errorCode: null })
     );
 
     const chunks = await step.run("chunks", async () => {
@@ -119,7 +138,14 @@ export const generateSummary = inngest.createFunction(
       throw new NonRetriableError("No text to summarize");
     }
 
-    const summary = await mapReduce({ step, chunks: texts, config: summaryConfig });
+    const ai = await chatAiFor(chatId);
+    const summary = await mapReduce({
+      step,
+      chunks: texts,
+      config: summaryConfig,
+      model: ai.chat(),
+      classify: (e) => toJobError(e, sourceOf(ai, "chat"), ai.chatModelId),
+    });
     await step.run("save", async () => {
       await saveSummary({
         chatId,
@@ -138,9 +164,10 @@ export const generateFlashcards = inngest.createFunction(
     id: "generate-flashcards",
     retries: 2,
     concurrency: { limit: 1, key: "event.data.chatId" },
-    onFailure: async ({ event }) => {
+    onFailure: async ({ event, error }) => {
       await updateChatStatus(event.data.event.data.chatId, {
         flashcardsStatus: "FAILED",
+        ...(describeFailure(error).code ? { errorCode: describeFailure(error).code } : {}),
       }).catch(() => {});
     },
   },
@@ -149,7 +176,7 @@ export const generateFlashcards = inngest.createFunction(
     const { chatId } = event.data;
     const chat = await step.run("load-chat", () => loadChat(chatId));
     await step.run("mark-processing", () =>
-      updateChatStatus(chatId, { flashcardsStatus: "PROCESSING" })
+      updateChatStatus(chatId, { flashcardsStatus: "PROCESSING", errorCode: null })
     );
 
     const chunks = await step.run("chunks", async () => {
@@ -161,10 +188,13 @@ export const generateFlashcards = inngest.createFunction(
       throw new NonRetriableError("No text to make flashcards from");
     }
 
+    const ai = await chatAiFor(chatId);
     const { flashcards } = await mapReduce({
       step,
       chunks: texts,
       config: flashcardsConfig,
+      model: ai.chat(),
+      classify: (e) => toJobError(e, sourceOf(ai, "chat"), ai.chatModelId),
     });
     await step.run("save", async () => {
       await saveFlashcards({ chatId, flashcards });
@@ -187,9 +217,10 @@ export const generateQuiz = inngest.createFunction(
     id: "generate-quiz",
     retries: 2,
     concurrency: { limit: 1, key: "event.data.chatId" },
-    onFailure: async ({ event }) => {
+    onFailure: async ({ event, error }) => {
       await updateChatStatus(event.data.event.data.chatId, {
         quizStatus: "FAILED",
+        ...(describeFailure(error).code ? { errorCode: describeFailure(error).code } : {}),
       }).catch(() => {});
     },
   },
@@ -198,7 +229,7 @@ export const generateQuiz = inngest.createFunction(
     const { chatId } = event.data;
     const chat = await step.run("load-chat", () => loadChat(chatId));
     await step.run("mark-processing", () =>
-      updateChatStatus(chatId, { quizStatus: "PROCESSING" })
+      updateChatStatus(chatId, { quizStatus: "PROCESSING", errorCode: null })
     );
 
     const chunks = await step.run("chunks", async () => {
@@ -210,10 +241,13 @@ export const generateQuiz = inngest.createFunction(
       throw new NonRetriableError("No text to make a quiz from");
     }
 
+    const ai = await chatAiFor(chatId);
     const { questions } = await mapReduce({
       step,
       chunks: texts,
       config: quizConfig,
+      model: ai.chat(),
+      classify: (e) => toJobError(e, sourceOf(ai, "chat"), ai.chatModelId),
     });
 
     await step.run("save", async () => {

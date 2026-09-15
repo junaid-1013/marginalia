@@ -1,3 +1,5 @@
+import { ensureOk } from "@/apis/errors";
+
 interface IPayload {
   chatId: string;
 }
@@ -8,8 +10,6 @@ export const processDocumentAPI = async (payload: IPayload) => {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  if (!response.ok) {
-    throw new Error("Failed to start processing");
-  }
+  await ensureOk(response, "Failed to start processing");
   return response.json();
 };

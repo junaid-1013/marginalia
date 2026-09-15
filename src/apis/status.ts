@@ -6,6 +6,8 @@ export interface IChatStatus {
   flashcardsStatus: JobStatus;
   quizStatus: JobStatus;
   processingError: string | null;
+  /** set when the last failure was about the AI key: NO_KEY, INVALID_KEY, QUOTA, PLATFORM_LIMIT, BAD_MODEL */
+  errorCode?: string | null;
 }
 
 export const getChatStatus = async ({ queryKey }: any): Promise<IChatStatus> => {

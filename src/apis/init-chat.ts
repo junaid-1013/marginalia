@@ -1,5 +1,7 @@
 import { Chat } from "@prisma/client";
 
+import { ensureOk } from "@/apis/errors";
+
 interface IPayload {
   name: string;
   pdfLink: string;
@@ -12,10 +14,7 @@ export const initChatAPI = async (chatConfig: IPayload) => {
       method: "POST",
       body: JSON.stringify(chatConfig),
     });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error ?? "Failed to initialize chat");
-    }
+    await ensureOk(response, "Failed to initialize chat");
     const chat: { chat: Chat } = await response.json();
     return chat;
   } catch (e) {

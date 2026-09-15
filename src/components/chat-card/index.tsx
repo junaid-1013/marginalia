@@ -8,6 +8,7 @@ import { type Chat } from "@prisma/client";
 import { CopyIcon, RefreshCwIcon, SendIcon, SquareIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { KeyNeeded, parseAiError } from "@/components/ai/key-needed";
 import { Markdown, CitationChip } from "@/components/chat/markdown";
 import { useWorkspace } from "@/components/workspace/workspace-context";
 import { Button } from "@/components/ui/button";
@@ -218,7 +219,13 @@ const ChatCard = ({ chat, initialMessages }: Props) => {
             Reading the document...
           </p>
         )}
-        {error && (
+        {error && parseAiError(error.message) ? (
+          <KeyNeeded
+            code={parseAiError(error.message)!.code}
+            message={parseAiError(error.message)!.message}
+          />
+        ) : null}
+        {error && !parseAiError(error.message) && (
           <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
             <span>The answer did not come through.</span>
             <Button type="button" size="sm" variant="outline" onClick={() => reload()}>

@@ -1,6 +1,8 @@
 // Minimal structured logger: one JSON line per event, which Vercel logs (and
 // any log drain) can filter by level or field. Swap the body for pino/Sentry
 // later without touching call sites.
+import { redactSecrets } from "@/lib/crypto";
+
 type Fields = Record<string, unknown>;
 
 const write = (level: "info" | "warn" | "error", message: string, fields?: Fields) => {
@@ -19,5 +21,8 @@ export const logger = {
 /** Error objects do not survive JSON.stringify, so flatten them. */
 export const errorFields = (e: unknown): Fields =>
   e instanceof Error
-    ? { error: e.message, stack: e.stack?.split("\n").slice(0, 5).join("\n") }
-    : { error: String(e) };
+    ? {
+        error: redactSecrets(e.message),
+        stack: redactSecrets(e.stack?.split("\n").slice(0, 5).join("\n") ?? ""),
+      }
+    : { error: redactSecrets(String(e)) };

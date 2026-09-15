@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { reportAiError } from "@/lib/client-errors";
 
 import { summarize } from "@/apis";
 import { getChatSummary } from "@/apis/summary";
@@ -24,7 +25,7 @@ const DocumentSummaryPage = () => {
     mutationFn: summarize,
     // generation runs in the background, start polling the status
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["status", id] }),
-    onError: () => toast.error("The summary could not be started. Try again."),
+    onError: (e) => reportAiError(e, "The summary could not be started. Try again."),
   });
 
   const { data: summary, isLoading } = useQuery({
@@ -97,6 +98,7 @@ const DocumentSummaryPage = () => {
         documentReady={isReady}
         running={summaryRunning}
         failed={status?.summaryStatus === "FAILED"}
+        errorCode={status?.errorCode}
         starting={isPending}
         onGenerate={generate}
       >

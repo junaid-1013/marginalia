@@ -1,7 +1,6 @@
-import { generateObject, generateText } from "ai";
+import { generateObject, generateText, type LanguageModel } from "ai";
 import { z } from "zod";
 
-import { chatModel } from "@/lib/ai/provider";
 
 // The pipeline runs inside Inngest steps. Every LLM round trip is its own
 // step, so no single serverless invocation has to survive the whole document
@@ -53,18 +52,28 @@ const groupBySize = (parts: string[], maxChars: number) => {
   return groups;
 };
 
-const ask = async (prompt: string) =>
-  (await generateText({ model: chatModel(), system: SYSTEM, prompt, temperature: 0.2 }))
-    .text;
+const ask = async (model: LanguageModel, prompt: string, classify?: (e: unknown) => unknown) => {
+  try {
+    return (await generateText({ model, system: SYSTEM, prompt, temperature: 0.2 })).text;
+  } catch (e) {
+    throw classify ? classify(e) : e;
+  }
+};
 
 export const mapReduce = async <T extends z.ZodTypeAny>({
   step,
   chunks,
   config,
+  model,
+  classify,
 }: {
   step: IStepTools;
   chunks: string[];
   config: IMapReduceConfig<T>;
+  /** the model to write with, built from the key of whoever owns the document */
+  model: LanguageModel;
+  /** turns a provider failure into the error the caller wants to throw (for example a non-retryable key error) */
+  classify?: (e: unknown) => unknown;
 }): Promise<z.infer<T>> => {
   // 1. MAP: process groups of chunks
   const texts = groupBySize(chunks, GROUP_CHARS).map((g) => g.join("\n\n"));
@@ -72,7 +81,7 @@ export const mapReduce = async <T extends z.ZodTypeAny>({
   for (let i = 0; i < texts.length; i += MAP_CONCURRENCY) {
     const batch = texts.slice(i, i + MAP_CONCURRENCY);
     const out: string[] = await step.run(`${config.name}-map-${i}`, () =>
-      Promise.all(batch.map((text) => ask(wrap(config.mapInstruction, text))))
+      Promise.all(batch.map((text) => ask(model, wrap(config.mapInstruction, text), classify)))
     );
     partials = partials.concat(out);
   }
@@ -85,7 +94,7 @@ export const mapReduce = async <T extends z.ZodTypeAny>({
     partials = (await step.run(`${config.name}-collapse-${round}`, () =>
       Promise.all(
         groups.map((g) =>
-          ask(wrap(config.collapseInstruction, g.join("\n\n")))
+          ask(model, wrap(config.collapseInstruction, g.join("\n\n")), classify)
         )
       )
     )) as string[];
@@ -93,16 +102,20 @@ export const mapReduce = async <T extends z.ZodTypeAny>({
 
   // 3. REDUCE: one structured answer, validated against the zod schema
   return (await step.run(`${config.name}-reduce`, async () => {
-    const { object } = await generateObject({
-      model: chatModel(),
-      system: SYSTEM,
-      schema: config.schema,
-      prompt: wrap(
-        config.reduceInstruction,
-        partials.join("\n\n").slice(0, MAX_REDUCE_CHARS)
-      ),
-      temperature: 0.2,
-    });
-    return object;
+    try {
+      const { object } = await generateObject({
+        model,
+        system: SYSTEM,
+        schema: config.schema,
+        prompt: wrap(
+          config.reduceInstruction,
+          partials.join("\n\n").slice(0, MAX_REDUCE_CHARS)
+        ),
+        temperature: 0.2,
+      });
+      return object;
+    } catch (e) {
+      throw classify ? classify(e) : e;
+    }
   })) as z.infer<T>;
 };

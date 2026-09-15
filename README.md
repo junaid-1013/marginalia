@@ -15,6 +15,7 @@ Upload a PDF, then question it, summarize it and quiz yourself on it. Every answ
 - **Flashcards.** Flip a card, then say whether you knew it. Cards you missed come back as their own round (active recall, not a slideshow).
 - **Quiz.** Ten multiple-choice questions with explanations, a score, and a review of what you missed with the option to retry only those.
 - **Notes.** A rich-text editor next to the document, autosaved.
+- **Bring your own key.** Add your OpenAI or Google Gemini key in AI settings. It is encrypted, never shown again, and used only for your documents. A small shared allowance can cover first use.
 - **Background processing.** Uploading returns immediately. Reading, indexing and generating run as durable background steps, with live status and retries.
 - **A guided tour** for first-time users, and keyboard shortcuts (`/` to chat, `g` then `d n s f q` to switch tool).
 
@@ -103,12 +104,25 @@ Without the Inngest terminal a new document stays unprocessed (it is marked fail
 | `AUTH_SECRET` | yes | any long random string (`npx auth secret`) |
 | `BLOB_READ_WRITE_TOKEN` | yes | Vercel dashboard, Storage, your Blob store. There is no local emulator |
 | `NEXT_PUBLIC_BLOB_ACCESS` | no | `private` (default) or `public`, must match how the store was created |
-| `OPENAI_API_KEY` | yes | needs credit. `OPENAI_BASE_URL` points it at any compatible server (for example Ollama) |
+| `OPENAI_API_KEY` | one of the two | shared OpenAI key, needs credit. `OPENAI_BASE_URL` points it at any compatible server (for example Ollama) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | one of the two | shared Gemini key. `GOOGLE_BASE_URL` is optional |
+| `KEY_ENCRYPTION_SECRET` | for BYOK | 32 bytes, base64 (`openssl rand -base64 32`). Encrypts users' saved keys. Losing it makes them unreadable |
+| `KEY_ENCRYPTION_VERSION` | no | default 1. See rotation below |
+| `ALLOW_PLATFORM_KEY` | no | `false` forces every user to bring a key |
+| `PLATFORM_FREE_DOCUMENTS`, `PLATFORM_FREE_ACTIONS_PER_DAY` | no | shared key allowance per user. Empty or 0 = unlimited (self hosting). Set both on a public deploy |
 | `AI_CHAT_MODEL`, `AI_EMBED_MODEL` | no | defaults `gpt-4o-mini` and `text-embedding-3-small`. The embedding model must output **1536 dimensions** |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | no | enables "Continue with Google" |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | production | set by the Inngest integration on Vercel. Not needed locally |
 | `MAX_DOCUMENTS_PER_USER` | no | default 10 |
 | `NEXT_PUBLIC_SITE_URL` | no | canonical URL for metadata and the sitemap |
+
+### Bring your own key
+
+Users open **AI settings** (profile menu), pick OpenAI or Gemini for chat and for embeddings, and paste a key. The key is test-called once, then stored encrypted (AES-256-GCM, bound to the account). It is decrypted in memory per request, never returned by any API, never logged and never put in Inngest events.
+
+Order used for each request: the user's own key, then the shared env key while the allowance lasts, otherwise the user is asked to add a key. Each document remembers which embedding model indexed it and questions use that same model, so changing models never breaks old documents.
+
+**Rotating the master secret:** set `KEY_ENCRYPTION_VERSION=2`, set `KEY_ENCRYPTION_SECRET` to the new value and keep the old one as `KEY_ENCRYPTION_SECRET_V1`. Old keys stay readable and are re-encrypted when the user saves again.
 
 ### Scripts
 
@@ -141,6 +155,7 @@ Paper, ink and one highlighter. The signature is the **margin**: a notebook rule
 - Every API route checks that the signed-in user owns the document (another user's document is a 404, never a 403), validates its input with zod, and the model-backed ones are rate limited per user.
 - PDFs live in a private Blob store and are served only to their owner through an authenticated route. The server accepts only the blob it issued an upload token for (no arbitrary URLs).
 - Document text is treated as untrusted input to the model, and the client can never set the system prompt.
+- Saved AI keys are encrypted at rest, scoped to their owner and redacted from logs. Users cannot set provider URLs, so a key can only be sent to the official endpoints. See the [privacy notice](/privacy).
 - Credentials never go in a URL: the auth forms post by default.
 
 ## Project structure

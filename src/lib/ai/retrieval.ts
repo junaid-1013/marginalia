@@ -1,3 +1,5 @@
+import type { EmbeddingModel } from "ai";
+
 import { db } from "@/lib/db";
 import { embedQuery, toVectorLiteral } from "@/lib/ai/pipeline";
 
@@ -16,12 +18,15 @@ export const searchChunks = async ({
   chatId,
   query,
   k = 4,
+  embedder,
 }: {
   chatId: string;
   query: string;
   k?: number;
+  /** must be the model that built this document's vectors */
+  embedder: EmbeddingModel<string>;
 }): Promise<IRetrievedChunk[]> => {
-  const vector = toVectorLiteral(await embedQuery(query));
+  const vector = toVectorLiteral(await embedQuery(query, embedder));
   return db.$queryRaw<IRetrievedChunk[]>`
     SELECT "id", "content", "page",
            1 - ("embedding" <=> ${vector}::vector) AS "score"

@@ -42,7 +42,7 @@ const STEPS: Record<TourId, DriveStep[]> = {
       element: '[data-tour="account"]',
       popover: {
         title: "Your account",
-        description: "Switch the theme, take this tour again or log out from here.",
+        description: "Switch the theme, add your AI key, take this tour again or log out from here.",
         side: "bottom",
         align: "end",
       },

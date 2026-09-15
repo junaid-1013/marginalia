@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { RefreshCwIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { reportAiError } from "@/lib/client-errors";
 
 import { flashcardsAPI, getChatFlashCards } from "@/apis/flashcards";
 import { FlashcardDeck } from "@/components/study/flashcard-deck";
@@ -23,7 +23,7 @@ const DocumentFlashcardsPage = () => {
     mutationFn: flashcardsAPI,
     // generation runs in the background, start polling the status
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["status", id] }),
-    onError: () => toast.error("The flashcards could not be started. Try again."),
+    onError: (e) => reportAiError(e, "The flashcards could not be started. Try again."),
   });
 
   const { data, isLoading } = useQuery({
@@ -74,6 +74,7 @@ const DocumentFlashcardsPage = () => {
         documentReady={isReady}
         running={flashcardsRunning}
         failed={status?.flashcardsStatus === "FAILED"}
+        errorCode={status?.errorCode}
         starting={isPending}
         onGenerate={generate}
       >

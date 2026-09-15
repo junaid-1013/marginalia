@@ -1,4 +1,4 @@
-import { Message } from "ai";
+import { ApiClientError, ensureOk } from "@/apis/errors";
 
 interface IPayload {
   chatId: string;
@@ -10,14 +10,10 @@ export const summarize = async (payload: IPayload) => {
       method: "POST",
       body: JSON.stringify(payload),
     });
-
-    if (!response.ok) {
-      throw new Error("Failed to Summarize");
-    }
-    const chat = await response.json();
-    return chat;
+    await ensureOk(response, "Failed to summarize");
+    return await response.json();
   } catch (e) {
-    console.error("Error while Summaization", { e });
-    throw new Error("Failed to Summarize");
+    if (e instanceof ApiClientError) throw e;
+    throw new Error("Failed to summarize");
   }
 };

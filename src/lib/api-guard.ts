@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { getUserChat } from "@/services/db/chat";
+import { AiKeyError, classifyAiError, isKeyProblem } from "@/lib/ai/errors";
 import { errorFields, logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -73,6 +74,10 @@ export const parseQuery = <T extends z.ZodTypeAny>(
 export const errorResponse = (e: unknown, fallback = "Something went wrong") => {
   if (e instanceof ApiError) {
     return Response.json({ error: e.message }, { status: e.status });
+  }
+  // a missing, rejected or used-up AI key: 402, with a code the UI turns into "Add your key"
+  if (e instanceof AiKeyError && isKeyProblem(e.code)) {
+    return Response.json({ error: e.message, code: e.code }, { status: 402 });
   }
   logger.error("unhandled route error", errorFields(e));
   return Response.json({ error: fallback }, { status: 500 });
