@@ -10,4 +10,4 @@ export const SITE_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : "http://localhost:3000");
 
-export const REPO_URL = "https://github.com/junaid-1013/innovated";
+export const REPO_URL = "https://github.com/junaid-1013/marginalia";

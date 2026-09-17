@@ -2,6 +2,7 @@
   "name": "innovated",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "dev:inngest": "npm exec --yes --ignore-scripts=false inngest-cli@latest -- dev -u http://localhost:3000/api/inngest",

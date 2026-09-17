@@ -2,6 +2,8 @@
 
 **Dense texts, decoded into active recall.**
 
+**Live demo: [marginalia-jj.vercel.app](https://marginalia-jj.vercel.app)** · Apache-2.0 · bring your own OpenAI or Gemini key
+
 Upload a PDF, then question it, summarize it and quiz yourself on it. Every answer points to the page it came from, and clicking a page opens the PDF right there.
 
 <p align="center">
@@ -100,7 +102,7 @@ Without the Inngest terminal a new document stays unprocessed (it is marked fail
 
 | Variable | Needed | Notes |
 | --- | --- | --- |
-| `DATABASE_URL`, `DIRECT_URL` | yes | Postgres with pgvector. Locally `postgresql://postgres:postgres@localhost:5433/innovated` for both. On Neon use the pooled URL and the direct URL |
+| `DATABASE_URL`, `DATABASE_URL_UNPOOLED` | yes | Postgres with pgvector. Locally `postgresql://postgres:postgres@localhost:5433/innovated` for both. On Neon use the pooled URL and the direct URL |
 | `AUTH_SECRET` | yes | any long random string (`npx auth secret`) |
 | `BLOB_READ_WRITE_TOKEN` | yes | Vercel dashboard, Storage, your Blob store. There is no local emulator |
 | `NEXT_PUBLIC_BLOB_ACCESS` | no | `private` (default) or `public`, must match how the store was created |
@@ -175,3 +177,11 @@ prisma/           schema and migrations (pgvector included)
 - Scanned (image-only) PDFs have no text layer and are not supported yet.
 - The rate limiter is in memory (per server instance). Swap its store for Redis before real traffic.
 - The app is on Next.js 14. Next 14 no longer receives security fixes; moving to Next 15 / React 19 is the next planned upgrade (the notes editor is the last dependency that blocks it).
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines, and report security problems privately as described in [SECURITY.md](SECURITY.md). Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE).

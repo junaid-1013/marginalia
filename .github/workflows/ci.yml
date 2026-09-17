@@ -10,7 +10,7 @@ jobs:
     env:
       # placeholders so prisma/next can load config; nothing connects to them
       DATABASE_URL: postgresql://user:pass@localhost:5432/db
-      DIRECT_URL: postgresql://user:pass@localhost:5432/db
+      DATABASE_URL_UNPOOLED: postgresql://user:pass@localhost:5432/db
       AUTH_SECRET: ci-secret
     steps:
       - uses: actions/checkout@v4

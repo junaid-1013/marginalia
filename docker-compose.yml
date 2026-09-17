@@ -1,7 +1,7 @@
 # Local Postgres with the pgvector extension (Neon has it built in for production).
 #   docker compose up -d
 #   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/innovated
-#   DIRECT_URL=postgresql://postgres:postgres@localhost:5433/innovated
+#   DATABASE_URL_UNPOOLED=postgresql://postgres:postgres@localhost:5433/innovated
 services:
   db:
     image: pgvector/pgvector:pg16

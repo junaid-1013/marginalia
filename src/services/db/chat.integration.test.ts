@@ -1,5 +1,5 @@
 // Needs a real database with the migrations applied:
-//   docker compose up -d && DATABASE_URL=... DIRECT_URL=... npx prisma migrate deploy
+//   docker compose up -d && DATABASE_URL=... DATABASE_URL_UNPOOLED=... npx prisma migrate deploy
 //   bun run test:db
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
